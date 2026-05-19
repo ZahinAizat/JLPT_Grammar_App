@@ -40,3 +40,7 @@ data/jlpt_app_full_N1_N2_imported.db
 
 # Keep main app database
 !data/jlpt_app.db
+
+# Live/local SQLite database should not be overwritten during deployment
+data/jlpt_app.db
+data/*.db
