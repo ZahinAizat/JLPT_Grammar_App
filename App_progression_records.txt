@@ -31,3 +31,16 @@
 |   29 |     ⏭️ Planned    | Add quiz session question limit: 5, 10, 20, or unlimited.                                                                      |
 |   30 |     ⏭️ Planned    | Add search grammar function.                                                                                                   |
 |   31 |     ⏭️ Planned    | Later, build GUI version using Tkinter, CustomTkinter, or PySide6.                                                             |
+
+import sys
+import os
+
+project_home = "/home/ToraSao/JLPT_Grammar_App"
+
+if project_home not in sys.path:
+    sys.path.insert(0, project_home)
+
+os.environ["SECRET_KEY"] = "jlpt-app-2026-random-secret-change-this-8052123"
+os.environ["FLASK_DEBUG"] = "0"
+
+from web_app import app as application

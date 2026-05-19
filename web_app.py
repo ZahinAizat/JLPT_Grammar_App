@@ -3,7 +3,7 @@ import random
 import sqlite3
 
 from flask import Flask, render_template, request, redirect, url_for, session
-
+from werkzeug.security import generate_password_hash, check_password_hash
 from database import (
     get_all_users,
     get_or_create_user,
@@ -1124,10 +1124,63 @@ def reset_web_progress(user_id, reset_scope):
     conn.commit()
     conn.close()
 
+
+def create_account(username, password):
+    ensure_user_account_columns()
+
+    username = username.strip()
+
+    if not username:
+        return False, "Username cannot be empty."
+
+    if len(password) < 6:
+        return False, "Password must be at least 6 characters."
+
+    existing_user = get_user_by_username(username)
+
+    if existing_user is not None:
+        return False, "Username already exists."
+
+    password_hash = generate_password_hash(password)
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        INSERT INTO users (username, password_hash, created_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        """,
+        (username, password_hash)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return True, "Account created successfully."
+
+
+def login_account(username, password):
+    user = get_user_by_username(username.strip())
+
+    if user is None:
+        return False, "Username or password is incorrect.", None
+
+    if not user.get("password_hash"):
+        return False, "This old user does not have a password yet. Please register a new account or migrate this user later.", None
+
+    if not check_password_hash(user["password_hash"], password):
+        return False, "Username or password is incorrect.", None
+
+    return True, "Login successful.", user
+
+
 @app.route("/")
 def index():
-    users = get_all_users()
-    return render_template("index.html", users=users)
+    if "user_id" in session:
+        return redirect(url_for("dashboard"))
+
+    return render_template("login.html")
 
 
 @app.route("/select_user", methods=["POST"])
@@ -1142,6 +1195,59 @@ def select_user():
     session["user_id"] = user["id"]
     session["username"] = user["username"]
     session["recent_question_ids"] = []
+
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if "user_id" in session:
+        return redirect(url_for("dashboard"))
+
+    error = None
+    success = None
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if password != confirm_password:
+            error = "Passwords do not match."
+        else:
+            ok, message = create_account(username, password)
+
+            if ok:
+                success = message
+            else:
+                error = message
+
+    return render_template(
+        "register.html",
+        error=error,
+        success=success
+    )
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    if "user_id" in session:
+        return redirect(url_for("dashboard"))
+
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "")
+
+    ok, message, user = login_account(username, password)
+
+    if not ok:
+        return render_template(
+            "login.html",
+            error=message
+        )
+
+    session.clear()
+    session["user_id"] = user["id"]
+    session["username"] = user["username"]
 
     return redirect(url_for("dashboard"))
 
@@ -1557,6 +1663,49 @@ def get_mastery_grammar_details(
         results.append(item)
 
     return results
+
+
+def ensure_user_account_columns():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("PRAGMA table_info(users)")
+    columns = [row["name"] for row in cur.fetchall()]
+
+    if "password_hash" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
+
+    if "created_at" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN created_at TEXT")
+
+    conn.commit()
+    conn.close()
+
+
+def get_user_by_username(username):
+    ensure_user_account_columns()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT id, username, password_hash
+        FROM users
+        WHERE username = ?
+        """,
+        (username,)
+    )
+
+    user = cur.fetchone()
+    conn.close()
+
+    if user is None:
+        return None
+
+    return dict(user)
 
 
 @app.route("/statistics")

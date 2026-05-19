@@ -467,3 +467,19 @@ button {
 .mastery-grammar-card {
     word-break: break-word;
 }
+
+.error-message {
+    background: #ffd9d9;
+    color: #b00020;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.success-message {
+    background: #d7f5dd;
+    color: #1b7f35;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+}

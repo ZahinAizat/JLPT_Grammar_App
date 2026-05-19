@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Create Account</h2>
+
+<div class="card">
+    <h3>Register</h3>
+
+    <p class="section-description">
+        Create an account to save your quiz progress, history, mastery levels, and statistics.
+    </p>
+
+    {% if error %}
+        <p class="error-message">{{ error }}</p>
+    {% endif %}
+
+    {% if success %}
+        <p class="success-message">{{ success }}</p>
+
+        <div class="menu">
+            <a href="{{ url_for('index') }}">Go to login</a>
+        </div>
+    {% else %}
+        <form action="{{ url_for('register') }}" method="POST" class="setup-form">
+
+            <label for="username"><strong>Username</strong></label>
+            <input type="text" name="username" id="username" required>
+
+            <label for="password"><strong>Password</strong></label>
+            <input type="password" name="password" id="password" required>
+
+            <label for="confirm_password"><strong>Confirm Password</strong></label>
+            <input type="password" name="confirm_password" id="confirm_password" required>
+
+            <button type="submit">Create Account</button>
+        </form>
+
+        <div class="menu">
+            <a href="{{ url_for('index') }}">Back to login</a>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}
