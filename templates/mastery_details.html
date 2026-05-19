@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Grammar Mastery Details</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    <h3>Filter and Sort</h3>
+
+    <p class="section-description">
+        Use this page to see exactly which grammar points belong to each mastery level.
+    </p>
+
+    <form action="{{ url_for('mastery_details') }}" method="GET" class="setup-form">
+
+        <label for="mastery"><strong>Mastery</strong></label>
+        <select name="mastery" id="mastery">
+            <option value="all" {% if selected_mastery == "all" %}selected{% endif %}>All mastery levels</option>
+            <option value="new" {% if selected_mastery == "new" %}selected{% endif %}>New only</option>
+            <option value="learning" {% if selected_mastery == "learning" %}selected{% endif %}>Learning only</option>
+            <option value="weak" {% if selected_mastery == "weak" %}selected{% endif %}>Weak only</option>
+            <option value="mastered" {% if selected_mastery == "mastered" %}selected{% endif %}>Mastered only</option>
+        </select>
+
+        <label for="jlpt_level"><strong>JLPT Level</strong></label>
+        <select name="jlpt_level" id="jlpt_level">
+            <option value="all" {% if selected_level == "all" %}selected{% endif %}>All levels</option>
+            <option value="N1" {% if selected_level == "N1" %}selected{% endif %}>N1 only</option>
+            <option value="N2" {% if selected_level == "N2" %}selected{% endif %}>N2 only</option>
+        </select>
+
+        <label for="sort_by"><strong>Sort by</strong></label>
+        <select name="sort_by" id="sort_by">
+            <option value="grammar" {% if sort_by == "grammar" %}selected{% endif %}>Grammar</option>
+            <option value="jlpt_level" {% if sort_by == "jlpt_level" %}selected{% endif %}>JLPT level</option>
+            <option value="mastery" {% if sort_by == "mastery" %}selected{% endif %}>Mastery</option>
+            <option value="correct_count" {% if sort_by == "correct_count" %}selected{% endif %}>Correct count</option>
+            <option value="wrong_count" {% if sort_by == "wrong_count" %}selected{% endif %}>Wrong count</option>
+            <option value="accuracy" {% if sort_by == "accuracy" %}selected{% endif %}>Accuracy</option>
+            <option value="last_reviewed" {% if sort_by == "last_reviewed" %}selected{% endif %}>Last reviewed</option>
+        </select>
+
+        <label for="sort_order"><strong>Sort order</strong></label>
+        <select name="sort_order" id="sort_order">
+            <option value="asc" {% if sort_order == "asc" %}selected{% endif %}>Ascending</option>
+            <option value="desc" {% if sort_order == "desc" %}selected{% endif %}>Descending</option>
+        </select>
+
+        <button type="submit">Apply Filter</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Grammar Points</h3>
+
+    <p><strong>Total shown:</strong> {{ grammar_points|length }}</p>
+
+    {% if grammar_points %}
+        {% for item in grammar_points %}
+            <div class="mastery-grammar-card">
+
+                <div class="mastery-grammar-header">
+                    <div>
+                        <h4 class="mastery-grammar-title">
+                            {{ loop.index }}. {{ item.grammar }}
+                        </h4>
+
+                        {% if item.reading %}
+                            <p class="mastery-grammar-subtitle">{{ item.reading }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mastery-badge-group">
+                        <span class="mastery-tag">{{ item.mastery_level|capitalize }}</span>
+                        <span class="jlpt-tag">{{ item.jlpt_level }}</span>
+                    </div>
+                </div>
+
+                <div class="mastery-grammar-section">
+                    <h5>Grammar Details</h5>
+
+                    <p><strong>Meaning:</strong> {{ item.meaning }}</p>
+
+                    {% if item.formation %}
+                        <p><strong>Formation:</strong> {{ item.formation }}</p>
+                    {% endif %}
+
+                    {% if item.example_sentence %}
+                        <p><strong>Example sentence:</strong> {{ item.example_sentence }}</p>
+                    {% endif %}
+
+                    {% if item.example_translation %}
+                        <p><strong>Example translation:</strong> {{ item.example_translation }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="mastery-grammar-divider"></div>
+
+                <div class="mastery-grammar-section">
+                    <h5>Study Stats</h5>
+
+                    <p><strong>Total answered:</strong> {{ item.total_answered }}</p>
+                    <p><strong>Correct count:</strong> {{ item.correct_count }}</p>
+                    <p><strong>Wrong count:</strong> {{ item.wrong_count }}</p>
+                    <p><strong>Accuracy:</strong> {{ item.accuracy }}%</p>
+
+                    {% if item.last_reviewed_at %}
+                        <p><strong>Last reviewed:</strong> {{ item.last_reviewed_at }}</p>
+                    {% else %}
+                        <p><strong>Last reviewed:</strong> Not reviewed yet</p>
+                    {% endif %}
+                </div>
+
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No grammar points found for this filter.</p>
+    {% endif %}
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

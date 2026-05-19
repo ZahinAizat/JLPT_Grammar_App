@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>{{ quiz_title }}</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+{% if question_limit %}
+    <p><strong>Progress:</strong> Question {{ answered_count + 1 }} of {{ question_limit }}</p>
+{% else %}
+    <p><strong>Progress:</strong> Question {{ answered_count + 1 }} / Unlimited</p>
+{% endif %}
+
+<div class="card">
+    <h3>Current Quiz Session Stats</h3>
+
+    <p><strong>Correct in this session:</strong> {{ session_correct }}</p>
+    <p><strong>Wrong in this session:</strong> {{ session_wrong }}</p>
+    <p><strong>Session accuracy:</strong> {{ session_accuracy }}%</p>
+
+    <div class="bar-background">
+        <div class="bar-fill" style="width: {{ session_accuracy }}%;">
+            {{ session_accuracy }}%
+        </div>
+    </div>
+
+    {% if not question_limit and answered_count > 0 %}
+        <div class="menu">
+            <a href="{{ url_for('quiz_finish') }}">Finish unlimited quiz</a>
+        </div>
+    {% endif %}
+</div>
+
+<div class="card">
+
+    <p><strong>JLPT Level:</strong> {{ question.jlpt_level }}</p>
+
+    {% if question.difficulty %}
+        <p><strong>Difficulty:</strong> {{ question.difficulty }}</p>
+    {% endif %}
+
+    <p><strong>Mastery:</strong> {{ question.mastery_level }}</p>
+    <p><strong>Asked:</strong> {{ question.asked_count }} times</p>
+    <p><strong>Accuracy:</strong> {{ question.accuracy }}%</p>
+
+    <hr>
+
+    <h3>Question</h3>
+    <p>{{ question.question_text }}</p>
+</div>
+
+<form action="{{ url_for('quiz_answer') }}" method="POST" class="choice-form">
+
+    {% for choice in question.choices %}
+        <label class="choice-box">
+            <input type="radio" name="choice_index" value="{{ loop.index0 }}" required>
+            <span>{{ choice.grammar }}</span>
+        </label>
+    {% endfor %}
+
+    <button type="submit">Submit Answer</button>
+
+</form>
+
+<div class="bottom-links">
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

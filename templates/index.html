@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Select User</h2>
+
+<form action="{{ url_for('select_user') }}" method="POST">
+    <label>Username:</label>
+    <input type="text" name="username" placeholder="Enter username">
+    <button type="submit">Start</button>
+</form>
+
+{% if users %}
+    <h3>Existing Users</h3>
+
+    <div class="user-list">
+        {% for user in users %}
+            <form action="{{ url_for('select_user') }}" method="POST">
+                <input type="hidden" name="username" value="{{ user['username'] }}">
+                <button type="submit">{{ user["username"] }}</button>
+            </form>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% endblock %}

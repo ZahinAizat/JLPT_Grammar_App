@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>How Mastery Level Is Decided</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    <h3>What is mastery level?</h3>
+
+    <p class="section-description">
+        Each grammar point has a mastery level. The app uses your correct and wrong answers
+        to decide whether a grammar point is new, learning, weak, or mastered.
+    </p>
+
+    <p>
+        Mastery is decided per grammar point, not per question. This means if one grammar point
+        appears in several questions, all answers for that grammar point affect the same mastery level.
+    </p>
+</div>
+
+<div class="card">
+    <h3>The counts used by the app</h3>
+
+    <p>The app keeps two main counts for each grammar point:</p>
+
+    <table class="summary-table">
+        <tr>
+            <th>Count</th>
+            <th>Meaning</th>
+        </tr>
+
+        <tr>
+            <td>Correct count</td>
+            <td>How many times you answered this grammar point correctly.</td>
+        </tr>
+
+        <tr>
+            <td>Wrong count</td>
+            <td>How many times you answered this grammar point wrongly.</td>
+        </tr>
+
+        <tr>
+            <td>Accuracy</td>
+            <td>Correct count divided by total answers for that grammar point.</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card">
+    <h3>Mastery rules</h3>
+
+    <p class="section-description">
+        After each answer, the app recalculates the mastery level using these rules.
+    </p>
+
+    <table class="summary-table">
+        <tr>
+            <th>Mastery level</th>
+            <th>Rule</th>
+            <th>Simple meaning</th>
+        </tr>
+
+        <tr>
+            <td>New</td>
+            <td>No correct answer yet, and wrong answers are fewer than 3.</td>
+            <td>You have not practiced this grammar point enough yet.</td>
+        </tr>
+
+        <tr>
+            <td>Learning</td>
+            <td>At least 1 correct answer, but not mastered and not weak.</td>
+            <td>You have started learning this grammar point.</td>
+        </tr>
+
+        <tr>
+            <td>Weak</td>
+            <td>Wrong count is 3 or more, and accuracy is below 80%.</td>
+            <td>You made repeated mistakes, so this grammar point needs review.</td>
+        </tr>
+
+        <tr>
+            <td>Mastered</td>
+            <td>Correct count is 5 or more, and accuracy is 90% or higher.</td>
+            <td>You answered this grammar point correctly many times with high accuracy.</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card">
+    <h3>Examples</h3>
+
+    <table class="summary-table">
+        <tr>
+            <th>Correct</th>
+            <th>Wrong</th>
+            <th>Accuracy</th>
+            <th>Mastery</th>
+            <th>Why?</th>
+        </tr>
+
+        <tr>
+            <td>0</td>
+            <td>1</td>
+            <td>0%</td>
+            <td>New</td>
+            <td>Wrong answers are still fewer than 3.</td>
+        </tr>
+
+        <tr>
+            <td>0</td>
+            <td>3</td>
+            <td>0%</td>
+            <td>Weak</td>
+            <td>Wrong count is 3 or more and accuracy is below 80%.</td>
+        </tr>
+
+        <tr>
+            <td>2</td>
+            <td>1</td>
+            <td>66.7%</td>
+            <td>Learning</td>
+            <td>You have correct answers, but not enough to be mastered.</td>
+        </tr>
+
+        <tr>
+            <td>5</td>
+            <td>0</td>
+            <td>100%</td>
+            <td>Mastered</td>
+            <td>Correct count is 5 or more and accuracy is 90% or higher.</td>
+        </tr>
+
+        <tr>
+            <td>8</td>
+            <td>3</td>
+            <td>72.7%</td>
+            <td>Weak</td>
+            <td>Wrong count is 3 or more and accuracy is below 80%.</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card">
+    <h3>Important note</h3>
+
+    <p>
+        A grammar point can move between mastery levels. For example, a weak grammar point can
+        become learning or mastered later if your accuracy improves.
+    </p>
+
+    <p>
+        The app updates the mastery level after every submitted answer.
+    </p>
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

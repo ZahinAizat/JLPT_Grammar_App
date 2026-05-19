@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Search Grammar</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    <h3>Search Settings</h3>
+
+    <p class="section-description">
+        Search grammar by expression, reading, meaning, formation, example sentence, or translation.
+    </p>
+
+    <form action="{{ url_for('search_grammar') }}" method="GET" class="setup-form">
+
+        <label for="q"><strong>Search keyword</strong></label>
+        <input
+            type="text"
+            name="q"
+            id="q"
+            value="{{ keyword }}"
+            placeholder="Example: ばかり, because, noun + に"
+        >
+
+        <label for="jlpt_level"><strong>JLPT Level</strong></label>
+        <select name="jlpt_level" id="jlpt_level">
+            <option value="all" {% if selected_level == "all" %}selected{% endif %}>
+                All levels
+            </option>
+
+            <option value="N1" {% if selected_level == "N1" %}selected{% endif %}>
+                N1 only
+            </option>
+
+            <option value="N2" {% if selected_level == "N2" %}selected{% endif %}>
+                N2 only
+            </option>
+        </select>
+
+        <button type="submit">Search</button>
+    </form>
+</div>
+
+{% if keyword or selected_level != "all" %}
+
+    <div class="card">
+        <h3>Search Results</h3>
+
+        <p><strong>Found:</strong> {{ results|length }} result(s)</p>
+
+        {% if results %}
+            {% for item in results %}
+                <div class="mastery-grammar-card">
+
+                    <div class="mastery-grammar-header">
+                        <div>
+                            <h4 class="mastery-grammar-title">
+                                {{ loop.index }}. {{ item.grammar }}
+                            </h4>
+
+                            {% if item.reading %}
+                                <p class="mastery-grammar-subtitle">{{ item.reading }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="mastery-badge-group">
+                            <span class="mastery-tag">{{ item.mastery_level|capitalize }}</span>
+                            <span class="jlpt-tag">{{ item.jlpt_level }}</span>
+                        </div>
+                    </div>
+
+                    <div class="mastery-grammar-section">
+                        <h5>Grammar Details</h5>
+
+                        <p><strong>Grammar:</strong> {{ item.grammar }}</p>
+
+                        {% if item.reading %}
+                            <p><strong>Reading:</strong> {{ item.reading }}</p>
+                        {% endif %}
+
+                        <p><strong>Meaning:</strong> {{ item.meaning }}</p>
+
+                        {% if item.formation %}
+                            <p><strong>Formation:</strong> {{ item.formation }}</p>
+                        {% endif %}
+
+                        {% if item.example_sentence %}
+                            <p><strong>Example sentence:</strong> {{ item.example_sentence }}</p>
+                        {% endif %}
+
+                        {% if item.example_translation %}
+                            <p><strong>Example translation:</strong> {{ item.example_translation }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mastery-grammar-divider"></div>
+
+                    <div class="mastery-grammar-section">
+                        <h5>Study Stats</h5>
+
+                        <p><strong>Current mastery:</strong> {{ item.mastery_level }}</p>
+                        <p><strong>Total answered:</strong> {{ item.total_answered }}</p>
+                        <p><strong>Correct count:</strong> {{ item.correct_count }}</p>
+                        <p><strong>Wrong count:</strong> {{ item.wrong_count }}</p>
+                        <p><strong>Accuracy:</strong> {{ item.accuracy }}%</p>
+                    </div>
+
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No matching grammar found.</p>
+        {% endif %}
+    </div>
+
+{% else %}
+
+    <div class="card">
+        <h3>How to search</h3>
+
+        <p class="section-description">
+            You can search by grammar, reading, meaning, formation, example sentence, or example translation.
+        </p>
+
+        <p>Examples:</p>
+
+        <ul>
+            <li>Search Japanese grammar: <strong>ばかり</strong></li>
+            <li>Search meaning: <strong>because</strong></li>
+            <li>Search formation: <strong>N + に</strong></li>
+        </ul>
+    </div>
+
+{% endif %}
+
+<div class="menu">
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

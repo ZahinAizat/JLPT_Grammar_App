@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Reset Progress</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    <h3>Choose what to reset</h3>
+
+    <p>
+        This will reset your app progress. It will delete quiz history and mastery progress
+        for the selected level.
+    </p>
+
+    <!--<p>
+        Your old local app history will not be deleted.
+    </p>-->
+
+    <form action="{{ url_for('reset_confirm') }}" method="POST" class="setup-form">
+
+        <label for="reset_scope"><strong>Reset scope</strong></label>
+
+        <select name="reset_scope" id="reset_scope" required>
+            <option value="">Choose reset option</option>
+            <option value="all">All progress</option>
+            <option value="N1">N1 progress only</option>
+            <option value="N2">N2 progress only</option>
+        </select>
+
+        <button type="submit">Continue</button>
+    </form>
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

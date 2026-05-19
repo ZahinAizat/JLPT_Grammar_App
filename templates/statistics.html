@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Statistics</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    <h3>Web Quiz Overall Performance</h3>
+
+    <p><strong>Total answered:</strong> {{ stats.total_answered }}</p>
+    <p><strong>Correct:</strong> {{ stats.correct }}</p>
+    <p><strong>Wrong:</strong> {{ stats.wrong }}</p>
+    <p><strong>Overall accuracy:</strong> {{ stats.overall_accuracy }}%</p>
+
+    <div class="bar-background">
+        <div class="bar-fill" style="width: {{ stats.overall_accuracy }}%;">
+            {{ stats.overall_accuracy }}%
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Correct vs Wrong</h3>
+
+    {% if stats.total_answered > 0 %}
+        {% set correct_percent = (stats.correct / stats.total_answered * 100) | round(1) %}
+        {% set wrong_percent = (stats.wrong / stats.total_answered * 100) | round(1) %}
+    {% else %}
+        {% set correct_percent = 0 %}
+        {% set wrong_percent = 0 %}
+    {% endif %}
+
+    <p><strong>Correct:</strong> {{ stats.correct }} answer(s)</p>
+    <div class="bar-background">
+        <div class="bar-fill" style="width: {{ correct_percent }}%;">
+            {{ correct_percent }}%
+        </div>
+    </div>
+
+    <p><strong>Wrong:</strong> {{ stats.wrong }} answer(s)</p>
+    <div class="bar-background">
+        <div class="bar-fill danger-bar" style="width: {{ wrong_percent }}%;">
+            {{ wrong_percent }}%
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Current Mastery Distribution</h3>
+
+    {% for item in stats.mastery_graph %}
+        <p><strong>{{ item.label|capitalize }}:</strong> {{ item.count }} grammar point(s)</p>
+
+        <div class="bar-background">
+            <div class="bar-fill mastery-bar" style="width: {{ item.percent }}%;">
+                {{ item.percent }}%
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <h3>Web Quiz Accuracy by JLPT Level</h3>
+
+    {% if stats.level_graph %}
+        {% for item in stats.level_graph %}
+            <p>
+                <strong>{{ item.label }}:</strong>
+                {{ item.accuracy }}%
+                （Correct: {{ item.correct }}, Wrong: {{ item.wrong }}）
+            </p>
+
+            <div class="bar-background">
+                <div class="bar-fill" style="width: {{ item.accuracy }}%;">
+                    {{ item.accuracy }}%
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No JLPT level statistics yet.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>Web Quiz accuracy by Difficulty</h3>
+
+    {% if stats.difficulty_graph %}
+        {% for item in stats.difficulty_graph %}
+            <p>
+                <strong>{{ item.label }}:</strong>
+                {{ item.accuracy }}%
+                （Correct: {{ item.correct }}, Wrong: {{ item.wrong }}）
+            </p>
+
+            <div class="bar-background">
+                <div class="bar-fill" style="width: {{ item.accuracy }}%;">
+                    {{ item.accuracy }}%
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No difficulty statistics yet. Answer new web quiz questions first.</p>
+    {% endif %}
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

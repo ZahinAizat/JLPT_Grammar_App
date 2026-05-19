@@ -1,0 +1,42 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secret files
+.env
+.flaskenv
+
+# Flask instance folder
+instance/
+
+# SQLite temporary files
+*.db-journal
+*.sqlite-journal
+*.sqlite3-journal
+
+# IDE/editor files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build / executable output
+build/
+dist/
+*.spec
+
+# Extra database backups
+data/*backup*.db
+data/jlpt_app_full_N1_N2_imported.db
+
+# Keep main app database
+!data/jlpt_app.db

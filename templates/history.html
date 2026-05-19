@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Question History</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    <h3>Filter and Sort</h3>
+
+    <p class="section-description">
+        Use these options to review specific quiz answers. You can filter by result, level,
+        difficulty, date, and mastery level.
+    </p>
+
+    <form action="{{ url_for('question_history') }}" method="GET" class="setup-form">
+
+        <label for="status"><strong>Status</strong></label>
+        <select name="status" id="status">
+            <option value="all" {% if status_filter == "all" %}selected{% endif %}>All answers</option>
+            <option value="correct" {% if status_filter == "correct" %}selected{% endif %}>Correct only</option>
+            <option value="wrong" {% if status_filter == "wrong" %}selected{% endif %}>Wrong only</option>
+        </select>
+
+        <label for="jlpt_level"><strong>JLPT Level</strong></label>
+        <select name="jlpt_level" id="jlpt_level">
+            <option value="all" {% if selected_level == "all" %}selected{% endif %}>All levels</option>
+            <option value="N1" {% if selected_level == "N1" %}selected{% endif %}>N1 only</option>
+            <option value="N2" {% if selected_level == "N2" %}selected{% endif %}>N2 only</option>
+        </select>
+
+        <label for="difficulty"><strong>Difficulty</strong></label>
+        <select name="difficulty" id="difficulty">
+            <option value="all" {% if selected_difficulty == "all" %}selected{% endif %}>All difficulties</option>
+            <option value="easy" {% if selected_difficulty == "easy" %}selected{% endif %}>Easy only</option>
+            <option value="normal" {% if selected_difficulty == "normal" %}selected{% endif %}>Normal only</option>
+            <option value="hard" {% if selected_difficulty == "hard" %}selected{% endif %}>Hard only</option>
+        </select>
+
+        <label for="mastery"><strong>Mastery</strong></label>
+        <select name="mastery" id="mastery">
+            <option value="all" {% if selected_mastery == "all" %}selected{% endif %}>All mastery levels</option>
+            <option value="new" {% if selected_mastery == "new" %}selected{% endif %}>New only</option>
+            <option value="learning" {% if selected_mastery == "learning" %}selected{% endif %}>Learning only</option>
+            <option value="weak" {% if selected_mastery == "weak" %}selected{% endif %}>Weak only</option>
+            <option value="mastered" {% if selected_mastery == "mastered" %}selected{% endif %}>Mastered only</option>
+        </select>
+
+        <label for="date_from"><strong>Date from</strong></label>
+        <input type="date" name="date_from" id="date_from" value="{{ date_from }}">
+
+        <label for="date_to"><strong>Date to</strong></label>
+        <input type="date" name="date_to" id="date_to" value="{{ date_to }}">
+
+        <label for="sort_by"><strong>Sort by</strong></label>
+        <select name="sort_by" id="sort_by">
+            <option value="answered_at" {% if sort_by == "answered_at" %}selected{% endif %}>Answered date</option>
+            <option value="status" {% if sort_by == "status" %}selected{% endif %}>Correct / Wrong</option>
+            <option value="jlpt_level" {% if sort_by == "jlpt_level" %}selected{% endif %}>JLPT level</option>
+            <option value="difficulty" {% if sort_by == "difficulty" %}selected{% endif %}>Difficulty</option>
+            <option value="mastery" {% if sort_by == "mastery" %}selected{% endif %}>Mastery</option>
+            <option value="appeared_count" {% if sort_by == "appeared_count" %}selected{% endif %}>Times appeared</option>
+            <option value="grammar" {% if sort_by == "grammar" %}selected{% endif %}>Grammar</option>
+        </select>
+
+        <label for="sort_order"><strong>Sort order</strong></label>
+        <select name="sort_order" id="sort_order">
+            <option value="desc" {% if sort_order == "desc" %}selected{% endif %}>Descending</option>
+            <option value="asc" {% if sort_order == "asc" %}selected{% endif %}>Ascending</option>
+        </select>
+
+        <button type="submit">Apply Filter</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Recent Answers</h3>
+
+    <p><strong>Total matching answers:</strong> {{ total_count }}</p>
+    <p><strong>Page:</strong> {{ page }} / {{ total_pages }}</p>
+
+    {% if history %}
+        {% for item in history %}
+            <div class="mastery-grammar-card">
+
+                <div class="mastery-grammar-header">
+                    <div>
+                        <h4 class="mastery-grammar-title">
+                            {{ loop.index }}. {{ item.correct_grammar }}
+                        </h4>
+
+                        {% if item.correct_reading %}
+                            <p class="mastery-grammar-subtitle">{{ item.correct_reading }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mastery-badge-group">
+                        {% if item.is_correct == 1 %}
+                            <span class="status-pill correct-pill">Correct</span>
+                        {% else %}
+                            <span class="status-pill wrong-pill">Wrong</span>
+                        {% endif %}
+
+                        <span class="mastery-tag">{{ item.mastery_level|capitalize }}</span>
+                        <span class="jlpt-tag">{{ item.jlpt_level }}</span>
+                    </div>
+                </div>
+
+                <div class="mastery-grammar-section">
+                    <h5>Answer Information</h5>
+
+                    <p><strong>Answered at:</strong> {{ item.answered_at }}</p>
+
+                    {% if item.difficulty %}
+                        <p><strong>Difficulty:</strong> {{ item.difficulty }}</p>
+                    {% endif %}
+
+                    <p><strong>Times this grammar appeared:</strong> {{ item.appeared_count }}</p>
+                    <p><strong>Current grammar stats:</strong> Correct {{ item.correct_count }}, Wrong {{ item.wrong_count }}</p>
+
+                    {% if item.question_text %}
+                        <p><strong>Question:</strong> {{ item.question_text }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="mastery-grammar-divider"></div>
+
+                <div class="mastery-grammar-section">
+                    <h5>Correct Grammar Details</h5>
+
+                    <p><strong>Grammar:</strong> {{ item.correct_grammar }}</p>
+
+                    {% if item.correct_reading %}
+                        <p><strong>Reading:</strong> {{ item.correct_reading }}</p>
+                    {% endif %}
+
+                    <p><strong>Meaning:</strong> {{ item.correct_meaning }}</p>
+
+                    {% if item.correct_formation %}
+                        <p><strong>Formation:</strong> {{ item.correct_formation }}</p>
+                    {% endif %}
+
+                    {% if item.correct_example_sentence %}
+                        <p><strong>Example sentence:</strong> {{ item.correct_example_sentence }}</p>
+                    {% endif %}
+
+                    {% if item.correct_example_translation %}
+                        <p><strong>Example translation:</strong> {{ item.correct_example_translation }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="mastery-grammar-divider"></div>
+
+                <div class="mastery-grammar-section">
+                    <h5>Your Answer Details</h5>
+
+                    {% if item.selected_grammar %}
+                        <p><strong>Your answer:</strong> {{ item.selected_grammar }}</p>
+
+                        {% if item.selected_reading %}
+                            <p><strong>Reading:</strong> {{ item.selected_reading }}</p>
+                        {% endif %}
+
+                        <p><strong>Meaning:</strong> {{ item.selected_meaning }}</p>
+
+                        {% if item.selected_formation %}
+                            <p><strong>Formation:</strong> {{ item.selected_formation }}</p>
+                        {% endif %}
+
+                        {% if item.selected_example_sentence %}
+                            <p><strong>Example sentence:</strong> {{ item.selected_example_sentence }}</p>
+                        {% endif %}
+
+                        {% if item.selected_example_translation %}
+                            <p><strong>Example translation:</strong> {{ item.selected_example_translation }}</p>
+                        {% endif %}
+                    {% else %}
+                        <p><strong>Your answer:</strong> No answer selected</p>
+                    {% endif %}
+                </div>
+
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No matching quiz history found.</p>
+    {% endif %}
+</div>
+
+<div class="pagination">
+
+    {% if page > 1 %}
+        <a href="{{ url_for(
+            'question_history',
+            page=page-1,
+            status=status_filter,
+            jlpt_level=selected_level,
+            difficulty=selected_difficulty,
+            mastery=selected_mastery,
+            date_from=date_from,
+            date_to=date_to,
+            sort_by=sort_by,
+            sort_order=sort_order
+        ) }}">Previous page</a>
+    {% endif %}
+
+    {% if page < total_pages %}
+        <a href="{{ url_for(
+            'question_history',
+            page=page+1,
+            status=status_filter,
+            jlpt_level=selected_level,
+            difficulty=selected_difficulty,
+            mastery=selected_mastery,
+            date_from=date_from,
+            date_to=date_to,
+            sort_by=sort_by,
+            sort_order=sort_order
+        ) }}">Next page</a>
+    {% endif %}
+
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

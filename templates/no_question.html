@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>No Question Found</h2>
+
+<p>No available question was found.</p>
+
+<p>This may happen if your database has no grammar points or no matching questions.</p>
+
+<div class="menu">
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

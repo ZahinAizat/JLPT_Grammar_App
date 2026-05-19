@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Dashboard</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    <h3>Dashboard Settings</h3>
+
+    <p class="section-description">
+        Choose which JLPT level you want to view. This changes the dashboard numbers below.
+    </p>
+
+    <form action="{{ url_for('dashboard') }}" method="GET" class="setup-form">
+        <label for="jlpt_level"><strong>JLPT Level</strong></label>
+
+        <select name="jlpt_level" id="jlpt_level">
+            <option value="all" {% if dashboard.selected_level == "All levels" %}selected{% endif %}>
+                All levels
+            </option>
+
+            <option value="N1" {% if dashboard.selected_level == "N1" %}selected{% endif %}>
+                N1 only
+            </option>
+
+            <option value="N2" {% if dashboard.selected_level == "N2" %}selected{% endif %}>
+                N2 only
+            </option>
+        </select>
+
+        <button type="submit">Update Dashboard</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Database</h3>
+
+    <p class="section-description">
+        This shows how much grammar and how many quiz questions are available in the app for the selected level.
+    </p>
+
+    <p><strong>Level:</strong> {{ dashboard.selected_level }}</p>
+    <p><strong>Total grammar points:</strong> {{ dashboard.total_grammar }}</p>
+    <p><strong>Total questions:</strong> {{ dashboard.total_questions }}</p>
+</div>
+
+<div class="card">
+    <h3>Answered Questions Summary</h3>
+
+    <p class="section-description">
+        This shows your quiz performance based on the answers saved for this account.
+    </p>
+
+    <p><strong>Total answered:</strong> {{ dashboard.total_answered }}</p>
+    <p><strong>Correct:</strong> {{ dashboard.correct }}</p>
+    <p><strong>Wrong:</strong> {{ dashboard.wrong }}</p>
+    <p><strong>Overall accuracy:</strong> {{ dashboard.accuracy }}%</p>
+</div>
+
+<div class="card-title-row">
+    <h3>Grammar Points Mastery Summary</h3>
+
+    <div class="button-row">
+        <a class="small-button" href="{{ url_for('mastery_details') }}">View Details</a>
+        <a class="small-button" href="{{ url_for('mastery_explanation') }}">More</a>
+    </div>
+</div>
+
+    <p class="section-description">
+        This shows the current learning status of grammar points. A grammar point can move from new to learning, weak, or mastered depending on your answers.
+    </p>
+
+    <table class="summary-table">
+        <tr>
+            <th>Mastery</th>
+            <th>Count</th>
+            <th>Percentage</th>
+            <th>Meaning</th>
+        </tr>
+
+        <tr>
+            <td>New</td>
+            <td>{{ dashboard.mastery.new.count }}</td>
+            <td>{{ dashboard.mastery.new.percent }}%</td>
+            <td>Grammar points that have not been studied much yet.</td>
+        </tr>
+
+        <tr>
+            <td>Learning</td>
+            <td>{{ dashboard.mastery.learning.count }}</td>
+            <td>{{ dashboard.mastery.learning.percent }}%</td>
+            <td>Grammar points you have started practicing.</td>
+        </tr>
+
+        <tr>
+            <td>Weak</td>
+            <td>{{ dashboard.mastery.weak.count }}</td>
+            <td>{{ dashboard.mastery.weak.percent }}%</td>
+            <td>Grammar points that need more review because of repeated mistakes.</td>
+        </tr>
+
+        <tr>
+            <td>Mastered</td>
+            <td>{{ dashboard.mastery.mastered.count }}</td>
+            <td>{{ dashboard.mastery.mastered.percent }}%</td>
+            <td>Grammar points with strong accuracy after repeated correct answers.</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card">
+    <h3>App Features</h3>
+
+    <p class="section-description">
+        Choose what you want to do next.
+    </p>
+
+    <div class="feature-grid">
+
+		<div class="feature-card">
+			<h4>Start Quiz</h4>
+			<p>
+				Start a quiz using your own filters. You can choose JLPT 	level, difficulty,mastery level, and number of questions.
+			</p>
+			<a href="{{ url_for('weighted_quiz_setup') }}">Start</a>
+		</div>
+
+		<div class="feature-card">
+			<h4>How Questions Are Selected</h4>
+			<p>
+				Learn how the app chooses questions using filters, mastery levels, weighted selection,and cooldown.
+			</p>
+			<a href="{{ url_for('question_selection_explanation') }}">Learn More</a>
+		</div>
+        <div class="feature-card">
+            <h4>Search Grammar</h4>
+            <p>
+                Search grammar by expression, reading, meaning, formation, example sentence, or translation.
+            </p>
+            <a href="{{ url_for('search_grammar') }}">Search</a>
+        </div>
+
+        <div class="feature-card">
+            <h4>Question History</h4>
+            <p>
+                Review your previous quiz answers and check which grammar points you answered correctly or wrongly.
+            </p>
+            <a href="{{ url_for('question_history') }}">View History</a>
+        </div>
+
+        <div class="feature-card">
+            <h4>Statistics</h4>
+            <p>
+                Check your accuracy, mastery distribution, level performance, and difficulty performance.
+            </p>
+            <a href="{{ url_for('statistics') }}">View Stats</a>
+        </div>
+
+        <div class="feature-card danger-feature">
+            <h4>Reset Progress</h4>
+            <p>
+                Reset your progress for all levels, N1 only, or N2 only. Use this carefully because it cannot be undone.
+            </p>
+            <a href="{{ url_for('reset_page') }}">Reset</a>
+        </div>
+
+        <div class="feature-card">
+            <h4>Logout</h4>
+            <p>
+                Return to the user selection page.
+            </p>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

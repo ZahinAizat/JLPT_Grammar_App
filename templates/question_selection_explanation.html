@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>How Questions Are Selected</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    <h3>Basic idea</h3>
+
+    <p class="section-description">
+        The quiz selects questions based on the filters you choose before starting.
+        You can filter by JLPT level, difficulty, mastery level, and number of questions.
+    </p>
+</div>
+
+<div class="card">
+    <h3>JLPT level filter</h3>
+
+    <p>
+        You can choose all levels, N1 only, or N2 only.
+        If you choose N1 only, only N1 grammar questions will appear.
+    </p>
+</div>
+
+<div class="card">
+    <h3>Difficulty filter</h3>
+
+    <p>
+        You can choose all difficulties, easy, normal, or hard.
+        This controls which question difficulty will appear.
+    </p>
+</div>
+
+<div class="card">
+    <h3>Mastery level filter</h3>
+
+    <p>
+        Each grammar point has a mastery level: new, learning, weak, or mastered.
+        You can choose one or more mastery levels before starting the quiz.
+    </p>
+
+    <table class="summary-table">
+        <tr>
+            <th>Mastery</th>
+            <th>Meaning</th>
+        </tr>
+
+        <tr>
+            <td>New</td>
+            <td>Grammar points that have not been studied much yet.</td>
+        </tr>
+
+        <tr>
+            <td>Learning</td>
+            <td>Grammar points you have started practicing.</td>
+        </tr>
+
+        <tr>
+            <td>Weak</td>
+            <td>Grammar points that need review because of repeated mistakes.</td>
+        </tr>
+
+        <tr>
+            <td>Mastered</td>
+            <td>Grammar points with strong accuracy after repeated correct answers.</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card">
+    <h3>Weighted selection</h3>
+
+    <p>
+        When several matching questions are available, the app gives priority to grammar points
+        that need more review.
+    </p>
+
+    <p>
+        In general, weak and learning grammar points are more likely to appear than mastered grammar points.
+    </p>
+</div>
+
+<div class="card">
+    <h3>Cooldown system</h3>
+
+    <p>
+        The app temporarily avoids recently shown questions so the same question does not repeat immediately.
+    </p>
+
+    <p>
+        If the filter is too narrow and no question is found, the cooldown can be cleared so the quiz can continue.
+    </p>
+</div>
+
+<div class="card">
+    <h3>Unlimited mode</h3>
+
+    <p>
+        If you choose unlimited mode, the quiz continues until you press the finish button.
+        Your current session stats will be shown while you continue answering.
+    </p>
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('weighted_quiz_setup') }}">Start Quiz</a>
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

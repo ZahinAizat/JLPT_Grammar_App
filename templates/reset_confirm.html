@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Confirm Reset</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    <h3>Are you sure?</h3>
+
+    {% if reset_scope == "all" %}
+        <p>You are about to reset <strong>all progress</strong>.</p>
+    {% else %}
+        <p>You are about to reset <strong>{{ reset_scope }} progress</strong>.</p>
+    {% endif %}
+
+    <p>This action cannot be undone.</p>
+
+    <form action="{{ url_for('reset_do') }}" method="POST" class="setup-form">
+        <input type="hidden" name="reset_scope" value="{{ reset_scope }}">
+
+        <button type="submit">Yes, reset progress</button>
+    </form>
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('reset_page') }}">Cancel</a>
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

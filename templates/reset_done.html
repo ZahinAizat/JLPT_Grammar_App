@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Reset Complete</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    {% if reset_scope == "all" %}
+        <p>All progress has been reset.</p>
+    {% else %}
+        <p>{{ reset_scope }} progress has been reset.</p>
+    {% endif %}
+
+    <!--<p>Your old local app history was not deleted.</p> redundant? -->
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Feedback</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+{% if question_limit %}
+    <p><strong>Progress:</strong> Answered {{ answered_count }} of {{ question_limit }}</p>
+{% else %}
+    <p><strong>Progress:</strong> Answered {{ answered_count }} / Unlimited</p>
+{% endif %}
+
+<div class="card">
+    <h3>Current Quiz Session Stats</h3>
+
+    {% if question_limit %}
+        <p><strong>Progress:</strong> {{ answered_count }} / {{ question_limit }}</p>
+    {% else %}
+        <p><strong>Progress:</strong> {{ answered_count }} / Unlimited</p>
+    {% endif %}
+
+    <p><strong>Correct in this session:</strong> {{ session_correct }}</p>
+    <p><strong>Wrong in this session:</strong> {{ session_wrong }}</p>
+    <p><strong>Session accuracy:</strong> {{ session_accuracy }}%</p>
+
+    <div class="bar-background">
+        <div class="bar-fill" style="width: {{ session_accuracy }}%;">
+            {{ session_accuracy }}%
+        </div>
+    </div>
+</div>
+
+{% if is_correct %}
+    <div class="result correct">
+        Correct!
+    </div>
+{% else %}
+    <div class="result wrong">
+        Wrong.
+    </div>
+{% endif %}
+
+<div class="mastery-grammar-card">
+
+    <div class="mastery-grammar-header">
+        <div>
+            <h4 class="mastery-grammar-title">
+                Correct Answer: {{ question.grammar }}
+            </h4>
+
+            {% if question.reading %}
+                <p class="mastery-grammar-subtitle">{{ question.reading }}</p>
+            {% endif %}
+        </div>
+
+        <div class="mastery-badge-group">
+            {% if is_correct %}
+                <span class="status-pill correct-pill">Correct</span>
+            {% else %}
+                <span class="status-pill wrong-pill">Wrong</span>
+            {% endif %}
+
+            {% if question.jlpt_level %}
+                <span class="jlpt-tag">{{ question.jlpt_level }}</span>
+            {% endif %}
+
+            {% if question.mastery_level %}
+                <span class="mastery-tag">{{ question.mastery_level|capitalize }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mastery-grammar-section">
+        <h5>Question Information</h5>
+
+        <p><strong>Question:</strong> {{ question.question_text }}</p>
+
+        {% if question.difficulty %}
+            <p><strong>Difficulty:</strong> {{ question.difficulty }}</p>
+        {% endif %}
+    </div>
+
+    <div class="mastery-grammar-divider"></div>
+
+    <div class="mastery-grammar-section">
+        <h5>Correct Grammar Details</h5>
+
+        <p><strong>Grammar:</strong> {{ question.grammar }}</p>
+
+        {% if question.reading %}
+            <p><strong>Reading:</strong> {{ question.reading }}</p>
+        {% endif %}
+
+        <p><strong>Meaning:</strong> {{ question.meaning }}</p>
+
+        {% if question.formation %}
+            <p><strong>Formation:</strong> {{ question.formation }}</p>
+        {% endif %}
+
+        {% if question.example_sentence %}
+            <p><strong>Example sentence:</strong> {{ question.example_sentence }}</p>
+        {% endif %}
+
+        {% if question.example_translation %}
+            <p><strong>Example translation:</strong> {{ question.example_translation }}</p>
+        {% endif %}
+    </div>
+
+    <div class="mastery-grammar-divider"></div>
+
+    <div class="mastery-grammar-section">
+        <h5>Your Answer Details</h5>
+
+        {% if selected_choice %}
+            <p><strong>Your answer:</strong> {{ selected_choice.grammar }}</p>
+
+            {% if selected_choice.reading %}
+                <p><strong>Reading:</strong> {{ selected_choice.reading }}</p>
+            {% endif %}
+
+            <p><strong>Meaning:</strong> {{ selected_choice.meaning }}</p>
+
+            {% if selected_choice.formation %}
+                <p><strong>Formation:</strong> {{ selected_choice.formation }}</p>
+            {% endif %}
+
+            {% if selected_choice.example_sentence %}
+                <p><strong>Example sentence:</strong> {{ selected_choice.example_sentence }}</p>
+            {% endif %}
+
+            {% if selected_choice.example_translation %}
+                <p><strong>Example translation:</strong> {{ selected_choice.example_translation }}</p>
+            {% endif %}
+        {% else %}
+            <p><strong>Your answer:</strong> No answer selected</p>
+        {% endif %}
+    </div>
+
+    {% if question.explanation %}
+        <div class="mastery-grammar-divider"></div>
+
+        <div class="mastery-grammar-section">
+            <h5>Question Explanation</h5>
+            <p>{{ question.explanation }}</p>
+        </div>
+    {% endif %}
+
+</div>
+
+<div class="card">
+    <h3>Details of All Choices</h3>
+
+    {% for choice in question.choices %}
+        <div class="mastery-grammar-card">
+
+            <div class="mastery-grammar-header">
+                <div>
+                    <h4 class="mastery-grammar-title">
+                        {{ loop.index }}. {{ choice.grammar }}
+                    </h4>
+
+                    {% if choice.reading %}
+                        <p class="mastery-grammar-subtitle">{{ choice.reading }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="mastery-badge-group">
+                    {% if choice.grammar_id == question.grammar_id %}
+                        <span class="status-pill correct-pill">Correct choice</span>
+                    {% elif selected_choice and choice.grammar_id == selected_choice.grammar_id %}
+                        <span class="status-pill wrong-pill">Your choice</span>
+                    {% else %}
+                        <span class="jlpt-tag">Other choice</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mastery-grammar-section">
+                <h5>Grammar Details</h5>
+
+                <p><strong>Grammar:</strong> {{ choice.grammar }}</p>
+
+                {% if choice.reading %}
+                    <p><strong>Reading:</strong> {{ choice.reading }}</p>
+                {% endif %}
+
+                <p><strong>Meaning:</strong> {{ choice.meaning }}</p>
+
+                {% if choice.formation %}
+                    <p><strong>Formation:</strong> {{ choice.formation }}</p>
+                {% endif %}
+
+                {% if choice.example_sentence %}
+                    <p><strong>Example sentence:</strong> {{ choice.example_sentence }}</p>
+                {% endif %}
+
+                {% if choice.example_translation %}
+                    <p><strong>Example translation:</strong> {{ choice.example_translation }}</p>
+                {% endif %}
+            </div>
+
+        </div>
+    {% endfor %}
+</div>
+
+<div class="menu">
+
+    {% if is_finished %}
+        <a href="{{ url_for('quiz_finish') }}">Finish quiz</a>
+    {% else %}
+        <a href="{{ url_for(next_quiz_endpoint) }}">Next question</a>
+
+        {% if not question_limit %}
+            <a href="{{ url_for('quiz_finish') }}">Finish unlimited quiz</a>
+        {% endif %}
+    {% endif %}
+
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

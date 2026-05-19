@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>{{ quiz_title }} Finished</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    <h3>Session Summary</h3>
+
+    {% if question_limit %}
+        <p>You answered {{ answered_count }} out of {{ question_limit }} questions.</p>
+    {% else %}
+        <p>You answered {{ answered_count }} questions.</p>
+    {% endif %}
+
+    <p><strong>Correct in this session:</strong> {{ session_correct }}</p>
+    <p><strong>Wrong in this session:</strong> {{ session_wrong }}</p>
+    <p><strong>Session accuracy:</strong> {{ session_accuracy }}%</p>
+
+    <div class="bar-background">
+        <div class="bar-fill" style="width: {{ session_accuracy }}%;">
+            {{ session_accuracy }}%
+        </div>
+    </div>
+
+    <p>Your progress has been saved.</p>
+</div>
+
+<div class="menu">
+    <a href="{{ url_for(quiz_setup_endpoint) }}">Start another {{ quiz_title }}</a>
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

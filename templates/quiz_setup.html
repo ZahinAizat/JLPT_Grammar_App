@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Start Quiz</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card">
+    <h3>Choose Quiz Settings</h3>
+
+    <p class="section-description">
+        Choose the type of questions you want to practice. You can combine level, difficulty,
+        and mastery filters.
+    </p>
+
+    <form action="{{ start_url }}" method="POST" class="setup-form">
+
+        <label for="jlpt_level"><strong>JLPT Level</strong></label>
+        <select name="jlpt_level" id="jlpt_level">
+            <option value="all">All levels</option>
+            <option value="N1">N1 only</option>
+            <option value="N2">N2 only</option>
+        </select>
+
+        <label for="difficulty"><strong>Difficulty</strong></label>
+        <select name="difficulty" id="difficulty">
+            <option value="all">All difficulties</option>
+            <option value="easy">Easy only</option>
+            <option value="normal">Normal only</option>
+            <option value="hard">Hard only</option>
+        </select>
+
+        <label><strong>Mastery Level</strong></label>
+
+        <p class="section-description">
+            Choose one or more mastery levels. If you choose nothing, all mastery levels are included.
+        </p>
+
+        <div class="checkbox-group">
+            <label>
+                <input type="checkbox" name="mastery_levels" value="new">
+                New
+            </label>
+
+            <label>
+                <input type="checkbox" name="mastery_levels" value="learning">
+                Learning
+            </label>
+
+            <label>
+                <input type="checkbox" name="mastery_levels" value="weak">
+                Weak
+            </label>
+
+            <label>
+                <input type="checkbox" name="mastery_levels" value="mastered">
+                Mastered
+            </label>
+        </div>
+
+        <label for="mastery_filter_mode"><strong>Mastery Filter Type</strong></label>
+        <select name="mastery_filter_mode" id="mastery_filter_mode">
+            <option value="include">Include selected mastery levels</option>
+            <option value="exclude">Exclude selected mastery levels</option>
+        </select>
+
+        <label for="question_count"><strong>Number of Questions</strong></label>
+        <select name="question_count" id="question_count">
+            <option value="5">5 questions</option>
+            <option value="10">10 questions</option>
+            <option value="20">20 questions</option>
+            <option value="unlimited">Unlimited</option>
+        </select>
+
+        <button type="submit">Start Quiz</button>
+
+    </form>
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('question_selection_explanation') }}">How questions are selected</a>
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

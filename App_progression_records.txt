@@ -1,0 +1,33 @@
+| Step |       Status      | What you did / planned                                                                                                         |
+| ---: | :---------------: | ------------------------------------------------------------------------------------------------------------------------------ |
+|    1 |       ✅ Done      | Created the project folder structure: `JLPT_Grammar_App`, `main.py`, `database.py`, `create_db.py`, `data/`, `assets/`, etc.   |
+|    2 |       ✅ Done      | Planned the database structure with tables: `grammar_points`, `questions`, `choices`, `user_answers`, and `review_status`.     |
+|    3 |       ✅ Done      | Created the SQLite database using `create_db.py`.                                                                              |
+|    4 |       ✅ Done      | Inserted the first sample grammar/question data using `insert_sample_data.py`.                                                 |
+|    5 |       ✅ Done      | Created `test_read_data.py` to test reading question data from the database.                                                   |
+|    6 |       ✅ Done      | Created reusable database functions in `database.py`, such as loading questions and saving answers.                            |
+|    7 |       ✅ Done      | Built the first simple quiz app in `main.py`.                                                                                  |
+|    8 |       ✅ Done      | Added automatic `review_status` updates: correct count, wrong count, mastery level.                                            |
+|    9 |       ✅ Done      | Added `view_progress.py` to show grammar progress.                                                                             |
+|   10 |       ✅ Done      | Changed quiz from always showing first question to showing a random question.                                                  |
+|   11 |       ✅ Done      | Added more sample grammar/questions using `insert_more_sample_data.py`.                                                        |
+|   12 |       ✅ Done      | Made quiz continue after each question instead of stopping after one question.                                                 |
+|   13 |       ✅ Done      | Added a main menu: start quiz, view progress, exit.                                                                            |
+|   14 |       ✅ Done      | Added session score tracking: total answered, correct, wrong, accuracy.                                                        |
+|   15 |       ✅ Done      | Added weak grammar review mode.                                                                                                |
+|   16 |       ✅ Done      | Prevented immediate repeated questions in one quiz session using used/recent question tracking.                                |
+|   17 |       ✅ Done      | Added weighted random question selection based on long-term accuracy.                                                          |
+|   18 |       ✅ Done      | Improved weighted quiz with cooldown so weak questions can appear more often without immediate repetition.                     |
+|   19 |       ✅ Done      | Added multiple users, user selection page, user confirmation, current-user progress, and reset progress function.              |
+|   20 | ✅ Done / Prepared | Added CSV import system using `grammar_points.csv`, `questions.csv`, and `import_csv_data.py`.                                 |
+|   21 |       ✅ Done      | Added Dashboard page showing total grammar, questions, answered count, accuracy, mastery summary, and recommended next action. |
+|   22 |       ✅ Done      | Added JLPT level filter for quiz modes: All, N1, N2.                                                                           |
+|   23 |       ✅ Done      | Added JLPT level filter to Dashboard and View Progress.                                                                        |
+|   24 |       ✅ Done      | Added mastery filter to View Progress: all, new, learning, weak, mastered.                                                     |
+|   25 |      ⏭️ Next      | Add “Study New Grammar” mode. This will show only grammar with `mastery_level = new`.                                          |
+|   26 |     ⏭️ Planned    | Improve CSV validation before importing many rows.                                                                             |
+|   27 |     ⏭️ Planned    | Import real N2/N1 grammar data. Recommended: N2 first, then N1.                                                                |
+|   28 |     ⏭️ Planned    | Show the correct answer when the user answers wrong.                                                                           |
+|   29 |     ⏭️ Planned    | Add quiz session question limit: 5, 10, 20, or unlimited.                                                                      |
+|   30 |     ⏭️ Planned    | Add search grammar function.                                                                                                   |
+|   31 |     ⏭️ Planned    | Later, build GUI version using Tkinter, CustomTkinter, or PySide6.                                                             |
