@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Account Deleted</h2>
+
+<div class="card">
+    <p>{{ message }}</p>
+
+    <p>Your account and saved progress have been removed.</p>
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('index') }}">Back to login</a>
+</div>
+
+{% endblock %}

@@ -1175,6 +1175,77 @@ def login_account(username, password):
     return True, "Login successful.", user
 
 
+def delete_account_with_password(user_id, password):
+    ensure_user_account_columns()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT id, username, password_hash
+        FROM users
+        WHERE id = ?
+        """,
+        (user_id,)
+    )
+
+    user = cur.fetchone()
+
+    if user is None:
+        conn.close()
+        return False, "Account not found."
+
+    if not user["password_hash"]:
+        conn.close()
+        return False, "This account does not have a password set yet."
+
+    if not check_password_hash(user["password_hash"], password):
+        conn.close()
+        return False, "Password is incorrect."
+
+    # Delete progress/history first
+    cur.execute(
+        """
+        DELETE FROM web_answer_history
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+
+    cur.execute(
+        """
+        DELETE FROM review_status
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+
+    # Old/local answer records, if they exist for this user
+    cur.execute(
+        """
+        DELETE FROM user_answers
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+
+    # Finally delete the user account
+    cur.execute(
+        """
+        DELETE FROM users
+        WHERE id = ?
+        """,
+        (user_id,)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return True, "Account deleted successfully."
+
+
 @app.route("/")
 def index():
     if "user_id" in session:
@@ -1818,6 +1889,54 @@ def mastery_details():
         sort_by=sort_by,
         sort_order=sort_order
     )
+
+
+@app.route("/account")
+def account_settings():
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    return render_template(
+        "account.html",
+        username=session["username"],
+        error=None
+    )
+
+
+@app.route("/account/delete", methods=["POST"])
+def delete_account():
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    password = request.form.get("password", "")
+    confirm_text = request.form.get("confirm_text", "").strip()
+
+    if confirm_text != "DELETE":
+        return render_template(
+            "account.html",
+            username=session["username"],
+            error="Please type DELETE to confirm account deletion."
+        )
+
+    ok, message = delete_account_with_password(
+        session["user_id"],
+        password
+    )
+
+    if not ok:
+        return render_template(
+            "account.html",
+            username=session["username"],
+            error=message
+        )
+
+    session.clear()
+
+    return render_template(
+        "account_deleted.html",
+        message=message
+    )
+
 
 @app.route("/logout")
 def logout():
