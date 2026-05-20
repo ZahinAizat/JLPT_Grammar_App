@@ -68,6 +68,19 @@
     </div>
 </div>
 
+<div class="button-explanation-box">
+    <div class="button-explanation-item">
+        <strong>View Details:</strong>
+        See the exact grammar points inside each mastery level, including reading, meaning,
+        formation, example sentence, example translation, and your study stats.
+    </div>
+
+    <div class="button-explanation-item">
+        <strong>More:</strong>
+        Learn how the app decides whether a grammar point is New, Learning, Weak, or Mastered.
+    </div>
+</div>
+
     <p class="section-description">
         This shows the current learning status of grammar points. A grammar point can move from new to learning, weak, or mastered depending on your answers.
     </p>
@@ -143,38 +156,55 @@
         </div>
 
         <div class="feature-card">
-            <h4>Question History</h4>
-            <p>
-                Review your previous quiz answers and check which grammar points you answered correctly or wrongly.
-            </p>
-            <a href="{{ url_for('question_history') }}">View History</a>
-        </div>
+			<h4>Start Quiz</h4>
+			<p>
+			Choose JLPT level, difficulty, mastery level, and number of questions.
+			Use this when you want to practice grammar with customized filters.
+			</p>
+			<a href="{{ url_for('weighted_quiz_setup') }}">Start Quiz</a>
+		</div>
 
-        <div class="feature-card">
-            <h4>Statistics</h4>
-            <p>
-                Check your accuracy, mastery distribution, level performance, and difficulty performance.
-            </p>
-            <a href="{{ url_for('statistics') }}">View Stats</a>
-        </div>
+		<div class="feature-card">
+			<h4>Search Grammar</h4>
+			<p>
+				Search grammar points by grammar form, reading, meaning, formation,example sentence, or translation.
+			</p>
+			<a href="{{ url_for('search_grammar') }}">Search</a>
+		</div>
 
-        <div class="feature-card danger-feature">
-            <h4>Reset Progress</h4>
-            <p>
-                Reset your progress for all levels, N1 only, or N2 only. Use this carefully because it cannot be undone.
-            </p>
-            <a href="{{ url_for('reset_page') }}">Reset</a>
-        </div>
+		<div class="feature-card">
+			<h4>Question History</h4>
+			<p>
+				Review your past quiz answers. You can check correct answers, wrong answers,selected choices, and full grammar details.
+			</p>
+			<a href="{{ url_for('question_history') }}">View History</a>
+		</div>
+
+		<div class="feature-card">
+			<h4>Statistics</h4>
+			<p>
+				See your overall quiz performance, accuracy by JLPT level, difficulty,and mastery distribution.
+			</p>
+			<a href="{{ url_for('statistics') }}">View Statistics</a>
+		</div>
+
+		<div class="feature-card danger-feature">
+			<h4>Reset Progress</h4>
+			<p>
+				Delete your saved progress for all levels, N1 only, or N2 only.Use this carefully because reset actions cannot be undone.
+			</p>
+			<a href="{{ url_for('reset_page') }}">Reset</a>
+		</div>
 
 		<div class="feature-card">
 			<h4>Account Settings</h4>
 			<p>
-				View your account information or delete your account. Deleting an account requires your password.
+				View your account information or delete your account.Deleting an account requires your password.
 			</p>
 			<a href="{{ url_for('account_settings') }}">Open</a>
 		</div>
 
-        <div class="feature-card">
+        <div class="feature-card danger-feature">
             <h4>Logout</h4>
             <p>
                 Return to the user selection page.
