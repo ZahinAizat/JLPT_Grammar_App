@@ -483,3 +483,81 @@ button {
     border-radius: 8px;
     font-weight: bold;
 }
+
+.slide-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.slide-controls button {
+    background: #1976d2;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.slide-controls button:hover {
+    background: #0d47a1;
+}
+
+#slide-counter {
+    font-weight: bold;
+    color: #263238;
+    min-width: 80px;
+    text-align: center;
+}
+
+.card-preview-box {
+    background: #f8fafc;
+    border: 1px solid #cfd8dc;
+    border-radius: 12px;
+    padding: 14px;
+    margin: 16px 0 20px 0;
+}
+
+.card-preview-box h4 {
+    margin-top: 0;
+    margin-bottom: 8px;
+}
+
+.card-preview-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 6px;
+}
+
+.card-preview-item {
+    border: 1px solid #cfd8dc;
+    background: #ffffff;
+    color: #263238;
+    padding: 7px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.card-preview-item:hover {
+    background: #e3f2fd;
+    border-color: #1976d2;
+}
+
+.active-preview-item {
+    background: #1976d2;
+    color: white;
+    border-color: #1976d2;
+    font-weight: bold;
+}
+
+.slide-controls {
+    flex-wrap: wrap;
+}
