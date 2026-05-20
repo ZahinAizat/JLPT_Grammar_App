@@ -51,8 +51,29 @@
         <p><strong>Found:</strong> {{ results|length }} result(s)</p>
 
         {% if results %}
+
+            <div class="card-preview-box">
+                <h4>Quick Jump</h4>
+
+                <p class="section-description">
+                    Click a grammar point below to jump directly to its card.
+                </p>
+
+                <div class="card-preview-list">
+                    {% for item in results %}
+                        <button
+                            type="button"
+                            class="card-preview-item"
+                            onclick="jumpToSlide({{ loop.index0 }}, event)"
+                        >
+                            {{ loop.index }}. {{ item.grammar }}
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+
             {% for item in results %}
-                <div class="mastery-grammar-card">
+                <div class="mastery-grammar-card slide-card">
 
                     <div class="mastery-grammar-header">
                         <div>
@@ -66,7 +87,10 @@
                         </div>
 
                         <div class="mastery-badge-group">
-                            <span class="mastery-tag">{{ item.mastery_level|capitalize }}</span>
+                            {% if item.mastery_level %}
+                                <span class="mastery-tag">{{ item.mastery_level|capitalize }}</span>
+                            {% endif %}
+
                             <span class="jlpt-tag">{{ item.jlpt_level }}</span>
                         </div>
                     </div>
@@ -100,15 +124,44 @@
                     <div class="mastery-grammar-section">
                         <h5>Study Stats</h5>
 
-                        <p><strong>Current mastery:</strong> {{ item.mastery_level }}</p>
-                        <p><strong>Total answered:</strong> {{ item.total_answered }}</p>
-                        <p><strong>Correct count:</strong> {{ item.correct_count }}</p>
-                        <p><strong>Wrong count:</strong> {{ item.wrong_count }}</p>
-                        <p><strong>Accuracy:</strong> {{ item.accuracy }}%</p>
+                        {% if item.mastery_level %}
+                            <p><strong>Current mastery:</strong> {{ item.mastery_level }}</p>
+                        {% else %}
+                            <p><strong>Current mastery:</strong> new</p>
+                        {% endif %}
+
+                        {% if item.total_answered is defined %}
+                            <p><strong>Total answered:</strong> {{ item.total_answered }}</p>
+                        {% endif %}
+
+                        {% if item.correct_count is defined %}
+                            <p><strong>Correct count:</strong> {{ item.correct_count }}</p>
+                        {% endif %}
+
+                        {% if item.wrong_count is defined %}
+                            <p><strong>Wrong count:</strong> {{ item.wrong_count }}</p>
+                        {% endif %}
+
+                        {% if item.accuracy is defined %}
+                            <p><strong>Accuracy:</strong> {{ item.accuracy }}%</p>
+                        {% endif %}
                     </div>
 
                 </div>
             {% endfor %}
+
+            <div class="slide-controls">
+                <button type="button" onclick="firstSlide(event)">First</button>
+                <button type="button" onclick="previousSlide(event)">Previous</button>
+
+                <span id="slide-counter">
+                    1 / {{ results|length }}
+                </span>
+
+                <button type="button" onclick="nextSlide(event)">Next</button>
+                <button type="button" onclick="lastSlide(event)">Last</button>
+            </div>
+
         {% else %}
             <p>No matching grammar found.</p>
         {% endif %}
@@ -137,5 +190,7 @@
 <div class="menu">
     <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
 </div>
+
+<script src="{{ url_for('static', filename='slide_cards.js') }}"></script>
 
 {% endblock %}

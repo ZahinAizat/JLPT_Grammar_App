@@ -152,8 +152,30 @@
 <div class="card">
     <h3>Details of All Choices</h3>
 
+	{% if question.choices %}
+    <div class="card-preview-box">
+        <h4>Quick Jump</h4>
+
+        <p class="section-description">
+            Click a choice below to jump directly to its explanation.
+        </p>
+
+        <div class="card-preview-list">
+            {% for choice in question.choices %}
+                <button
+                    type="button"
+                    class="card-preview-item"
+                    onclick="jumpToSlide({{ loop.index0 }}, event)"
+                >
+                    {{ loop.index }}. {{ choice.grammar }}
+                </button>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+	
     {% for choice in question.choices %}
-        <div class="mastery-grammar-card">
+        <div class="mastery-grammar-card slide-card">
 
             <div class="mastery-grammar-header">
                 <div>
@@ -203,6 +225,21 @@
 
         </div>
     {% endfor %}
+	
+	{% if question.choices %}
+    <div class="slide-controls">
+        <button type="button" onclick="firstSlide(event)">First</button>
+        <button type="button" onclick="previousSlide(event)">Previous</button>
+
+        <span id="slide-counter">
+            1 / {{ question.choices|length }}
+        </span>
+
+        <button type="button" onclick="nextSlide(event)">Next</button>
+        <button type="button" onclick="lastSlide(event)">Last</button>
+    </div>
+{% endif %}
+	
 </div>
 
 <div class="menu">
@@ -219,5 +256,7 @@
 
     <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
 </div>
+
+<script src="{{ url_for('static', filename='slide_cards.js') }}"></script>
 
 {% endblock %}

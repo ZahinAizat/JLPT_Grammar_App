@@ -57,9 +57,31 @@
 
     <p><strong>Total shown:</strong> {{ grammar_points|length }}</p>
 
+	{% if grammar_points %}
+		<div class="card-preview-box">
+			<h4>Quick Jump</h4>
+
+			<p class="section-description">
+				Click a grammar point below to jump directly to its card.
+			</p>
+
+			<div class="card-preview-list">
+				{% for item in grammar_points %}
+					<button
+						type="button"
+						class="card-preview-item"
+						onclick="jumpToSlide({{ loop.index0 }}, event)"
+					>
+						{{ loop.index }}. {{ item.grammar }}
+					</button>
+				{% endfor %}
+			</div>
+		</div>
+	{% endif %}
+	
     {% if grammar_points %}
         {% for item in grammar_points %}
-            <div class="mastery-grammar-card">
+            <div class="mastery-grammar-card slide-card">
 
                 <div class="mastery-grammar-header">
                     <div>
@@ -115,6 +137,17 @@
 
             </div>
         {% endfor %}
+		<div class="slide-controls">
+			<button type="button" onclick="firstSlide(event)">First</button>
+			<button type="button" onclick="previousSlide(event)">Previous</button>
+
+			<span id="slide-counter">
+				1 / {{ grammar_points|length }}
+			</span>
+
+			<button type="button" onclick="nextSlide(event)">Next</button>
+			<button type="button" onclick="lastSlide(event)">Last</button>
+		</div>
     {% else %}
         <p>No grammar points found for this filter.</p>
     {% endif %}
@@ -123,5 +156,7 @@
 <div class="menu">
     <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
 </div>
+
+<script src="{{ url_for('static', filename='slide_cards.js') }}"></script>
 
 {% endblock %}

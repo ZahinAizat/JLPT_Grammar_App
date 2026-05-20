@@ -1577,15 +1577,7 @@ def question_history():
     if "user_id" not in session:
         return redirect(url_for("index"))
 
-    page_text = request.args.get("page", "1")
-
-    try:
-        page = int(page_text)
-    except ValueError:
-        page = 1
-
-    if page < 1:
-        page = 1
+    page = 1
 
     status_filter = request.args.get("status", "all")
     jlpt_level = request.args.get("jlpt_level", "all")
@@ -1599,7 +1591,7 @@ def question_history():
     history_data = get_question_history(
         user_id=session["user_id"],
         page=page,
-        per_page=20,
+        per_page=1000,
         status_filter=status_filter,
         jlpt_level=jlpt_level,
         difficulty=difficulty,

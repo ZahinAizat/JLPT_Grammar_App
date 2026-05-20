@@ -78,11 +78,39 @@
     <h3>Recent Answers</h3>
 
     <p><strong>Total matching answers:</strong> {{ total_count }}</p>
-    <p><strong>Page:</strong> {{ page }} / {{ total_pages }}</p>
+    <p><strong>Showing:</strong> {{ history|length }} answer(s)</p>
 
     {% if history %}
+
+        <div class="card-preview-box">
+            <h4>Quick Jump</h4>
+
+            <p class="section-description">
+                Click an answer below to jump directly to its card.
+            </p>
+
+            <div class="card-preview-list">
+                {% for item in history %}
+                    <button
+                        type="button"
+                        class="card-preview-item"
+                        onclick="jumpToSlide({{ loop.index0 }}, event)"
+                    >
+                        {{ loop.index }}.
+                        {% if item.is_correct == 1 %}
+                            Correct
+                        {% else %}
+                            Wrong
+                        {% endif %}
+                        -
+                        {{ item.correct_grammar }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+
         {% for item in history %}
-            <div class="mastery-grammar-card">
+            <div class="mastery-grammar-card slide-card">
 
                 <div class="mastery-grammar-header">
                     <div>
@@ -182,47 +210,28 @@
 
             </div>
         {% endfor %}
+
+        <div class="slide-controls">
+            <button type="button" onclick="firstSlide(event)">First</button>
+            <button type="button" onclick="previousSlide(event)">Previous</button>
+
+            <span id="slide-counter">
+                1 / {{ history|length }}
+            </span>
+
+            <button type="button" onclick="nextSlide(event)">Next</button>
+            <button type="button" onclick="lastSlide(event)">Last</button>
+        </div>
+
     {% else %}
         <p>No matching quiz history found.</p>
     {% endif %}
 </div>
 
-<div class="pagination">
-
-    {% if page > 1 %}
-        <a href="{{ url_for(
-            'question_history',
-            page=page-1,
-            status=status_filter,
-            jlpt_level=selected_level,
-            difficulty=selected_difficulty,
-            mastery=selected_mastery,
-            date_from=date_from,
-            date_to=date_to,
-            sort_by=sort_by,
-            sort_order=sort_order
-        ) }}">Previous page</a>
-    {% endif %}
-
-    {% if page < total_pages %}
-        <a href="{{ url_for(
-            'question_history',
-            page=page+1,
-            status=status_filter,
-            jlpt_level=selected_level,
-            difficulty=selected_difficulty,
-            mastery=selected_mastery,
-            date_from=date_from,
-            date_to=date_to,
-            sort_by=sort_by,
-            sort_order=sort_order
-        ) }}">Next page</a>
-    {% endif %}
-
-</div>
-
 <div class="menu">
     <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
 </div>
+
+<script src="{{ url_for('static', filename='slide_cards.js') }}"></script>
 
 {% endblock %}
