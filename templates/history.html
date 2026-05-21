@@ -124,15 +124,20 @@
                     </div>
 
                     <div class="mastery-badge-group">
-                        {% if item.is_correct == 1 %}
-                            <span class="status-pill correct-pill">Correct</span>
-                        {% else %}
-                            <span class="status-pill wrong-pill">Wrong</span>
-                        {% endif %}
+						{% if item.is_correct == 1 %}
+							<span class="status-pill correct-pill">Correct</span>
+						{% else %}
+							<span class="status-pill wrong-pill">Wrong</span>
+						{% endif %}
 
-                        <span class="mastery-tag">{{ item.mastery_level|capitalize }}</span>
-                        <span class="jlpt-tag">{{ item.jlpt_level }}</span>
-                    </div>
+						<span class="mastery-tag">{{ item.mastery_level|capitalize }}</span>
+						<span class="jlpt-tag">{{ item.jlpt_level }}</span>
+						<span class="note-count-tag">Notes: {{ item.correct_note_count }}</span>
+
+						<a class="note-button" href="{{ url_for('grammar_notes', grammar_id=item.correct_grammar_id) }}">
+							Notes
+						</a>
+					</div>
                 </div>
 
                 <div class="mastery-grammar-section">
@@ -185,6 +190,16 @@
 
                     {% if item.selected_grammar %}
                         <p><strong>Your answer:</strong> {{ item.selected_grammar }}</p>
+
+						{% if item.selected_grammar_id %}
+							<p>
+								<a class="note-button" href="{{ url_for('grammar_notes', grammar_id=item.selected_grammar_id) }}">
+									Notes for your answer
+								</a>
+
+								<span class="note-count-tag">Notes: {{ item.selected_note_count }}</span>
+							</p>
+						{% endif %}
 
                         {% if item.selected_reading %}
                             <p><strong>Reading:</strong> {{ item.selected_reading }}</p>

@@ -684,6 +684,7 @@ def search_grammar_database(user_id, keyword="", jlpt_level=None, limit=50):
 
         item["total_answered"] = total_answered
         item["accuracy"] = accuracy
+        item["note_count"] = get_note_count_for_grammar(user_id, item["grammar_id"])
 
         results.append(item)
 
@@ -797,7 +798,9 @@ def get_question_history(
         web_answer_history.id,
         web_answer_history.answered_at,
         web_answer_history.is_correct,
-
+        web_answer_history.correct_grammar_id AS correct_grammar_id,
+        web_answer_history.selected_grammar_id AS selected_grammar_id,
+        
         questions.question_text,
         questions.difficulty,
 
@@ -859,13 +862,32 @@ def get_question_history(
 
     cur.execute(sql, params)
     rows = cur.fetchall()
+    history_rows = []
+
+    for row in rows:
+        item = dict(row)
+
+        item["correct_note_count"] = get_note_count_for_grammar(
+            user_id,
+            item["correct_grammar_id"]
+        )
+
+        if item.get("selected_grammar_id"):
+            item["selected_note_count"] = get_note_count_for_grammar(
+                user_id,
+                item["selected_grammar_id"]
+            )
+        else:
+            item["selected_note_count"] = 0
+
+        history_rows.append(item)
 
     conn.close()
-
+    
     total_pages = max(1, (total_count + per_page - 1) // per_page)
 
     return {
-        "rows": [dict(row) for row in rows],
+        "rows": history_rows,
         "total_count": total_count,
         "page": page,
         "per_page": per_page,
@@ -1246,6 +1268,867 @@ def delete_account_with_password(user_id, password):
     return True, "Account deleted successfully."
 
 
+
+
+def get_mastery_grammar_details(
+    user_id,
+    mastery="all",
+    jlpt_level="all",
+    sort_by="grammar",
+    sort_order="asc"
+):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    where_sql = "WHERE 1 = 1"
+    params = [user_id]
+
+    if mastery != "all":
+        where_sql += " AND COALESCE(review_status.mastery_level, 'new') = ?"
+        params.append(mastery)
+
+    if jlpt_level != "all":
+        where_sql += " AND grammar_points.jlpt_level = ?"
+        params.append(jlpt_level)
+
+    sort_options = {
+        "grammar": "grammar_points.grammar",
+        "jlpt_level": "grammar_points.jlpt_level",
+        "mastery": """
+            CASE COALESCE(review_status.mastery_level, 'new')
+                WHEN 'new' THEN 1
+                WHEN 'learning' THEN 2
+                WHEN 'weak' THEN 3
+                WHEN 'mastered' THEN 4
+                ELSE 5
+            END
+        """,
+        "correct_count": "COALESCE(review_status.correct_count, 0)",
+        "wrong_count": "COALESCE(review_status.wrong_count, 0)",
+        "accuracy": """
+            CASE
+                WHEN COALESCE(review_status.correct_count, 0) + COALESCE(review_status.wrong_count, 0) = 0
+                THEN 0
+                ELSE
+                    CAST(COALESCE(review_status.correct_count, 0) AS REAL)
+                    / (COALESCE(review_status.correct_count, 0) + COALESCE(review_status.wrong_count, 0))
+            END
+        """,
+        "last_reviewed": "review_status.last_reviewed_at"
+    }
+
+    order_column = sort_options.get(sort_by, "grammar_points.grammar")
+
+    if sort_order not in ["asc", "desc"]:
+        sort_order = "asc"
+
+    order_direction = sort_order.upper()
+
+    sql = f"""
+    SELECT
+        grammar_points.id AS grammar_id,
+        grammar_points.jlpt_level,
+        grammar_points.grammar,
+        grammar_points.reading,
+        grammar_points.meaning,
+        grammar_points.formation,
+        grammar_points.example_sentence,
+        grammar_points.example_translation,
+
+        COALESCE(review_status.correct_count, 0) AS correct_count,
+        COALESCE(review_status.wrong_count, 0) AS wrong_count,
+        COALESCE(review_status.mastery_level, 'new') AS mastery_level,
+        review_status.last_reviewed_at
+
+    FROM grammar_points
+
+    LEFT JOIN review_status
+        ON grammar_points.id = review_status.grammar_id
+        AND review_status.user_id = ?
+
+    {where_sql}
+
+    ORDER BY {order_column} {order_direction}
+    """
+
+    cur.execute(sql, params)
+    rows = cur.fetchall()
+    conn.close()
+
+    results = []
+
+    for row in rows:
+        item = dict(row)
+
+        correct_count = item["correct_count"]
+        wrong_count = item["wrong_count"]
+        total = correct_count + wrong_count
+
+        if total > 0:
+            accuracy = round((correct_count / total) * 100, 1)
+        else:
+            accuracy = 0
+
+        item["total_answered"] = total
+        item["accuracy"] = accuracy
+        item["note_count"] = get_note_count_for_grammar(user_id, item["grammar_id"])
+
+        results.append(item)
+
+    return results
+
+
+def ensure_user_account_columns():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("PRAGMA table_info(users)")
+    columns = [row["name"] for row in cur.fetchall()]
+
+    if "password_hash" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
+
+    if "created_at" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN created_at TEXT")
+
+    conn.commit()
+    conn.close()
+
+
+def get_user_by_username(username):
+    ensure_user_account_columns()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT id, username, password_hash
+        FROM users
+        WHERE username = ?
+        """,
+        (username,)
+    )
+
+    user = cur.fetchone()
+    conn.close()
+
+    if user is None:
+        return None
+
+    return dict(user)
+
+
+def ensure_notes_tables():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS grammar_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS grammar_note_links (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        note_id INTEGER NOT NULL,
+        grammar_id INTEGER NOT NULL,
+        relation_type TEXT DEFAULT 'related',
+        FOREIGN KEY (note_id) REFERENCES grammar_notes(id),
+        FOREIGN KEY (grammar_id) REFERENCES grammar_points(id)
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+def get_grammar_detail(grammar_id):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT
+        id AS grammar_id,
+        jlpt_level,
+        grammar,
+        reading,
+        meaning,
+        formation,
+        example_sentence,
+        example_translation
+    FROM grammar_points
+    WHERE id = ?
+    """, (grammar_id,))
+
+    row = cur.fetchone()
+    conn.close()
+
+    if row is None:
+        return None
+
+    return dict(row)
+
+
+def get_question_explanations_for_grammar(grammar_id):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT
+        id AS question_id,
+        question_text,
+        explanation,
+        difficulty
+    FROM questions
+    WHERE grammar_id = ?
+    ORDER BY
+        CASE difficulty
+            WHEN 'easy' THEN 1
+            WHEN 'normal' THEN 2
+            WHEN 'hard' THEN 3
+            ELSE 4
+        END
+    LIMIT 3
+    """, (grammar_id,))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+
+
+def get_notes_for_grammar(user_id, grammar_id):
+    ensure_notes_tables()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT
+        grammar_notes.id AS note_id,
+        grammar_notes.title,
+        grammar_notes.content,
+        grammar_notes.created_at,
+        grammar_notes.updated_at,
+        grammar_note_links.relation_type
+    FROM grammar_notes
+    JOIN grammar_note_links
+        ON grammar_notes.id = grammar_note_links.note_id
+    WHERE grammar_notes.user_id = ?
+      AND grammar_note_links.grammar_id = ?
+    ORDER BY grammar_notes.updated_at DESC
+    """, (user_id, grammar_id))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+
+
+def get_all_notes_for_user(
+    user_id,
+    keyword="",
+    relation_type="all",
+    jlpt_level="all",
+    connection_filter="all",
+    sort_by="updated_desc"
+):
+    ensure_notes_tables()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    where_sql = """
+    WHERE grammar_notes.user_id = ?
+    """
+
+    params = [user_id]
+
+    keyword = keyword.strip()
+
+    if keyword:
+        where_sql += """
+        AND (
+            grammar_notes.title LIKE ?
+            OR grammar_notes.content LIKE ?
+            OR grammar_points.grammar LIKE ?
+            OR grammar_points.reading LIKE ?
+            OR grammar_points.meaning LIKE ?
+        )
+        """
+
+        like_keyword = f"%{keyword}%"
+
+        params.extend([
+            like_keyword,
+            like_keyword,
+            like_keyword,
+            like_keyword,
+            like_keyword
+        ])
+
+    if relation_type != "all":
+        where_sql += " AND grammar_note_links.relation_type = ?"
+        params.append(relation_type)
+
+    if jlpt_level != "all":
+        where_sql += " AND grammar_points.jlpt_level = ?"
+        params.append(jlpt_level)
+
+    sort_options = {
+        "updated_desc": "grammar_notes.updated_at DESC",
+        "updated_asc": "grammar_notes.updated_at ASC",
+        "created_desc": "grammar_notes.created_at DESC",
+        "created_asc": "grammar_notes.created_at ASC",
+        "title_asc": "grammar_notes.title ASC",
+        "title_desc": "grammar_notes.title DESC"
+    }
+
+    order_sql = sort_options.get(sort_by, "grammar_notes.updated_at DESC")
+
+    sql = f"""
+    SELECT
+        grammar_notes.id AS note_id,
+        grammar_notes.title,
+        grammar_notes.content,
+        grammar_notes.created_at,
+        grammar_notes.updated_at,
+
+        grammar_note_links.relation_type,
+
+        grammar_points.id AS grammar_id,
+        grammar_points.jlpt_level,
+        grammar_points.grammar,
+        grammar_points.reading,
+        grammar_points.meaning,
+        grammar_points.formation,
+        grammar_points.example_sentence,
+        grammar_points.example_translation
+
+    FROM grammar_notes
+
+    JOIN grammar_note_links
+        ON grammar_notes.id = grammar_note_links.note_id
+
+    JOIN grammar_points
+        ON grammar_note_links.grammar_id = grammar_points.id
+
+    {where_sql}
+
+    ORDER BY {order_sql}, grammar_notes.id DESC
+    """
+
+    cur.execute(sql, params)
+    rows = cur.fetchall()
+    conn.close()
+
+    notes_dict = {}
+
+    for row in rows:
+        row = dict(row)
+        note_id = row["note_id"]
+
+        if note_id not in notes_dict:
+            notes_dict[note_id] = {
+                "note_id": note_id,
+                "title": row["title"],
+                "content": row["content"],
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"],
+                "connected_grammar": []
+            }
+
+        grammar_id = row["grammar_id"]
+
+        notes_dict[note_id]["connected_grammar"].append({
+            "grammar_id": grammar_id,
+            "jlpt_level": row["jlpt_level"],
+            "grammar": row["grammar"],
+            "reading": row["reading"],
+            "meaning": row["meaning"],
+            "formation": row["formation"],
+            "example_sentence": row["example_sentence"],
+            "example_translation": row["example_translation"],
+            "relation_type": row["relation_type"],
+            "question_explanations": get_question_explanations_for_grammar(grammar_id)
+        })
+
+    notes = list(notes_dict.values())
+
+    for note in notes:
+        note["connection_count"] = len(note["connected_grammar"])
+
+    if connection_filter == "multiple":
+        notes = [
+            note for note in notes
+            if note["connection_count"] >= 2
+        ]
+
+    elif connection_filter == "single":
+        notes = [
+            note for note in notes
+            if note["connection_count"] == 1
+        ]
+
+    if sort_by == "connection_count_desc":
+        notes.sort(key=lambda note: note["connection_count"], reverse=True)
+
+    elif sort_by == "connection_count_asc":
+        notes.sort(key=lambda note: note["connection_count"])
+
+    return notes
+
+
+def create_note_with_links(user_id, title, content, grammar_links):
+    """
+    grammar_links should be a list of dictionaries:
+    [
+        {"grammar_id": 1, "relation_type": "related"},
+        {"grammar_id": 2, "relation_type": "opposite"}
+    ]
+    """
+
+    ensure_notes_tables()
+
+    title = title.strip()
+    content = content.strip()
+
+    if not title:
+        return False, "Note title cannot be empty."
+
+    if not content:
+        return False, "Note content cannot be empty."
+
+    if not grammar_links:
+        return False, "Please connect the note to at least one grammar point."
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("""
+    INSERT INTO grammar_notes (
+        user_id,
+        title,
+        content,
+        created_at,
+        updated_at
+    )
+    VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    """, (user_id, title, content))
+
+    note_id = cur.lastrowid
+
+    for link in grammar_links:
+        grammar_id = link["grammar_id"]
+        relation_type = link.get("relation_type", "related")
+
+        cur.execute("""
+        INSERT INTO grammar_note_links (
+            note_id,
+            grammar_id,
+            relation_type
+        )
+        VALUES (?, ?, ?)
+        """, (note_id, grammar_id, relation_type))
+
+    conn.commit()
+    conn.close()
+
+    return True, "Note created successfully."
+
+
+def search_grammar_for_note_link(keyword="", limit=30):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    keyword = keyword.strip()
+
+    if keyword:
+        like_keyword = f"%{keyword}%"
+
+        cur.execute("""
+        SELECT
+            id AS grammar_id,
+            jlpt_level,
+            grammar,
+            reading,
+            meaning
+        FROM grammar_points
+        WHERE grammar LIKE ?
+           OR reading LIKE ?
+           OR meaning LIKE ?
+           OR formation LIKE ?
+        ORDER BY
+            CASE jlpt_level
+                WHEN 'N1' THEN 1
+                WHEN 'N2' THEN 2
+                ELSE 3
+            END,
+            grammar
+        LIMIT ?
+        """, (
+            like_keyword,
+            like_keyword,
+            like_keyword,
+            like_keyword,
+            limit
+        ))
+    else:
+        cur.execute("""
+        SELECT
+            id AS grammar_id,
+            jlpt_level,
+            grammar,
+            reading,
+            meaning
+        FROM grammar_points
+        ORDER BY
+            CASE jlpt_level
+                WHEN 'N1' THEN 1
+                WHEN 'N2' THEN 2
+                ELSE 3
+            END,
+            grammar
+        LIMIT ?
+        """, (limit,))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+
+
+def get_note_detail(user_id, note_id):
+    ensure_notes_tables()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT
+        id AS note_id,
+        title,
+        content,
+        created_at,
+        updated_at
+    FROM grammar_notes
+    WHERE id = ?
+      AND user_id = ?
+    """, (note_id, user_id))
+
+    note = cur.fetchone()
+
+    if note is None:
+        conn.close()
+        return None
+
+    note = dict(note)
+
+    cur.execute("""
+    SELECT
+        grammar_note_links.grammar_id,
+        grammar_note_links.relation_type,
+        grammar_points.jlpt_level,
+        grammar_points.grammar,
+        grammar_points.reading,
+        grammar_points.meaning
+    FROM grammar_note_links
+    JOIN grammar_points
+        ON grammar_note_links.grammar_id = grammar_points.id
+    WHERE grammar_note_links.note_id = ?
+    ORDER BY grammar_points.jlpt_level, grammar_points.grammar
+    """, (note_id,))
+
+    note["connected_grammar"] = [dict(row) for row in cur.fetchall()]
+
+    conn.close()
+
+    return note
+
+
+def update_note_with_links(user_id, note_id, title, content, grammar_links):
+    ensure_notes_tables()
+
+    title = title.strip()
+    content = content.strip()
+
+    if not title:
+        return False, "Note title cannot be empty."
+
+    if not content:
+        return False, "Note content cannot be empty."
+
+    if not grammar_links:
+        return False, "Please connect the note to at least one grammar point."
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT id
+    FROM grammar_notes
+    WHERE id = ?
+      AND user_id = ?
+    """, (note_id, user_id))
+
+    note = cur.fetchone()
+
+    if note is None:
+        conn.close()
+        return False, "Note not found."
+
+    cur.execute("""
+    UPDATE grammar_notes
+    SET
+        title = ?,
+        content = ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+      AND user_id = ?
+    """, (title, content, note_id, user_id))
+
+    cur.execute("""
+    DELETE FROM grammar_note_links
+    WHERE note_id = ?
+    """, (note_id,))
+
+    for link in grammar_links:
+        grammar_id = link["grammar_id"]
+        relation_type = link.get("relation_type", "related")
+
+        cur.execute("""
+        INSERT INTO grammar_note_links (
+            note_id,
+            grammar_id,
+            relation_type
+        )
+        VALUES (?, ?, ?)
+        """, (note_id, grammar_id, relation_type))
+
+    conn.commit()
+    conn.close()
+
+    return True, "Note updated successfully."
+
+
+def get_note_draft_key(note_id=None):
+    if note_id is None:
+        return "new_note_connections"
+
+    return f"edit_note_connections_{note_id}"
+
+
+def get_draft_connections(note_id=None):
+    key = get_note_draft_key(note_id)
+    return session.get(key, [])
+
+
+def save_draft_connections(connections, note_id=None):
+    key = get_note_draft_key(note_id)
+    session[key] = connections
+    session.modified = True
+
+
+def clear_draft_connections(note_id=None):
+    key = get_note_draft_key(note_id)
+
+    if key in session:
+        session.pop(key)
+        session.modified = True
+
+
+def add_draft_connection(grammar_id, relation_type="related", note_id=None):
+    connections = get_draft_connections(note_id)
+
+    grammar_id = int(grammar_id)
+
+    # If already connected, update relation type instead of duplicating.
+    updated = False
+
+    for connection in connections:
+        if int(connection["grammar_id"]) == grammar_id:
+            connection["relation_type"] = relation_type
+            updated = True
+            break
+
+    if not updated:
+        connections.append({
+            "grammar_id": grammar_id,
+            "relation_type": relation_type
+        })
+
+    save_draft_connections(connections, note_id)
+
+
+def remove_draft_connection(grammar_id, note_id=None):
+    connections = get_draft_connections(note_id)
+
+    grammar_id = int(grammar_id)
+
+    new_connections = [
+        connection
+        for connection in connections
+        if int(connection["grammar_id"]) != grammar_id
+    ]
+
+    save_draft_connections(new_connections, note_id)
+
+
+def get_draft_connection_details(note_id=None):
+    connections = get_draft_connections(note_id)
+
+    if not connections:
+        return []
+
+    grammar_ids = [int(connection["grammar_id"]) for connection in connections]
+    relation_map = {
+        int(connection["grammar_id"]): connection["relation_type"]
+        for connection in connections
+    }
+
+    placeholders = ",".join("?" for _ in grammar_ids)
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute(f"""
+    SELECT
+        id AS grammar_id,
+        jlpt_level,
+        grammar,
+        reading,
+        meaning
+    FROM grammar_points
+    WHERE id IN ({placeholders})
+    ORDER BY
+        CASE jlpt_level
+            WHEN 'N1' THEN 1
+            WHEN 'N2' THEN 2
+            ELSE 3
+        END,
+        grammar
+    """, grammar_ids)
+
+    rows = cur.fetchall()
+    conn.close()
+
+    results = []
+
+    for row in rows:
+        item = dict(row)
+        item["relation_type"] = relation_map.get(item["grammar_id"], "related")
+        results.append(item)
+
+    return results
+
+
+def delete_note_for_user(user_id, note_id):
+    ensure_notes_tables()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT id
+    FROM grammar_notes
+    WHERE id = ?
+      AND user_id = ?
+    """, (note_id, user_id))
+
+    note = cur.fetchone()
+
+    if note is None:
+        conn.close()
+        return False, "Note not found."
+
+    cur.execute("""
+    DELETE FROM grammar_note_links
+    WHERE note_id = ?
+    """, (note_id,))
+
+    cur.execute("""
+    DELETE FROM grammar_notes
+    WHERE id = ?
+      AND user_id = ?
+    """, (note_id, user_id))
+
+    conn.commit()
+    conn.close()
+
+    return True, "Note deleted successfully."
+
+
+def get_note_detail_with_explanations(user_id, note_id):
+    note = get_note_detail(user_id, note_id)
+
+    if note is None:
+        return None
+
+    connected_grammar_with_details = []
+
+    for grammar in note["connected_grammar"]:
+        grammar_id = grammar["grammar_id"]
+
+        full_grammar = get_grammar_detail(grammar_id)
+
+        if full_grammar is None:
+            continue
+
+        full_grammar["relation_type"] = grammar["relation_type"]
+        full_grammar["question_explanations"] = get_question_explanations_for_grammar(grammar_id)
+
+        connected_grammar_with_details.append(full_grammar)
+
+    note["connected_grammar"] = connected_grammar_with_details
+
+    return note
+
+
+def get_note_count_for_grammar(user_id, grammar_id):
+    ensure_notes_tables()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT COUNT(DISTINCT grammar_notes.id) AS note_count
+    FROM grammar_notes
+    JOIN grammar_note_links
+        ON grammar_notes.id = grammar_note_links.note_id
+    WHERE grammar_notes.user_id = ?
+      AND grammar_note_links.grammar_id = ?
+    """, (user_id, grammar_id))
+
+    row = cur.fetchone()
+    conn.close()
+
+    if row is None:
+        return 0
+
+    return row["note_count"]
+
+
 @app.route("/")
 def index():
     if "user_id" in session:
@@ -1488,6 +2371,23 @@ def quiz_answer():
 
     session_correct, session_wrong, session_accuracy = get_current_session_stats()
 
+    question["note_count"] = get_note_count_for_grammar(
+        session["user_id"],
+        question["grammar_id"]
+    )
+
+    for choice in question["choices"]:
+        choice["note_count"] = get_note_count_for_grammar(
+            session["user_id"],
+            choice["grammar_id"]
+        )
+
+    if selected_choice is not None:
+        selected_choice["note_count"] = get_note_count_for_grammar(
+            session["user_id"],
+            selected_choice["grammar_id"]
+        )
+
     return render_template(
         "feedback.html",
         username=session["username"],
@@ -1618,157 +2518,6 @@ def question_history():
         sort_by=sort_by,
         sort_order=sort_order
     )
-
-
-def get_mastery_grammar_details(
-    user_id,
-    mastery="all",
-    jlpt_level="all",
-    sort_by="grammar",
-    sort_order="asc"
-):
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    where_sql = "WHERE 1 = 1"
-    params = [user_id]
-
-    if mastery != "all":
-        where_sql += " AND COALESCE(review_status.mastery_level, 'new') = ?"
-        params.append(mastery)
-
-    if jlpt_level != "all":
-        where_sql += " AND grammar_points.jlpt_level = ?"
-        params.append(jlpt_level)
-
-    sort_options = {
-        "grammar": "grammar_points.grammar",
-        "jlpt_level": "grammar_points.jlpt_level",
-        "mastery": """
-            CASE COALESCE(review_status.mastery_level, 'new')
-                WHEN 'new' THEN 1
-                WHEN 'learning' THEN 2
-                WHEN 'weak' THEN 3
-                WHEN 'mastered' THEN 4
-                ELSE 5
-            END
-        """,
-        "correct_count": "COALESCE(review_status.correct_count, 0)",
-        "wrong_count": "COALESCE(review_status.wrong_count, 0)",
-        "accuracy": """
-            CASE
-                WHEN COALESCE(review_status.correct_count, 0) + COALESCE(review_status.wrong_count, 0) = 0
-                THEN 0
-                ELSE
-                    CAST(COALESCE(review_status.correct_count, 0) AS REAL)
-                    / (COALESCE(review_status.correct_count, 0) + COALESCE(review_status.wrong_count, 0))
-            END
-        """,
-        "last_reviewed": "review_status.last_reviewed_at"
-    }
-
-    order_column = sort_options.get(sort_by, "grammar_points.grammar")
-
-    if sort_order not in ["asc", "desc"]:
-        sort_order = "asc"
-
-    order_direction = sort_order.upper()
-
-    sql = f"""
-    SELECT
-        grammar_points.id AS grammar_id,
-        grammar_points.jlpt_level,
-        grammar_points.grammar,
-        grammar_points.reading,
-        grammar_points.meaning,
-        grammar_points.formation,
-        grammar_points.example_sentence,
-        grammar_points.example_translation,
-
-        COALESCE(review_status.correct_count, 0) AS correct_count,
-        COALESCE(review_status.wrong_count, 0) AS wrong_count,
-        COALESCE(review_status.mastery_level, 'new') AS mastery_level,
-        review_status.last_reviewed_at
-
-    FROM grammar_points
-
-    LEFT JOIN review_status
-        ON grammar_points.id = review_status.grammar_id
-        AND review_status.user_id = ?
-
-    {where_sql}
-
-    ORDER BY {order_column} {order_direction}
-    """
-
-    cur.execute(sql, params)
-    rows = cur.fetchall()
-    conn.close()
-
-    results = []
-
-    for row in rows:
-        item = dict(row)
-
-        correct_count = item["correct_count"]
-        wrong_count = item["wrong_count"]
-        total = correct_count + wrong_count
-
-        if total > 0:
-            accuracy = round((correct_count / total) * 100, 1)
-        else:
-            accuracy = 0
-
-        item["total_answered"] = total
-        item["accuracy"] = accuracy
-
-        results.append(item)
-
-    return results
-
-
-def ensure_user_account_columns():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    cur.execute("PRAGMA table_info(users)")
-    columns = [row["name"] for row in cur.fetchall()]
-
-    if "password_hash" not in columns:
-        cur.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
-
-    if "created_at" not in columns:
-        cur.execute("ALTER TABLE users ADD COLUMN created_at TEXT")
-
-    conn.commit()
-    conn.close()
-
-
-def get_user_by_username(username):
-    ensure_user_account_columns()
-
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        SELECT id, username, password_hash
-        FROM users
-        WHERE username = ?
-        """,
-        (username,)
-    )
-
-    user = cur.fetchone()
-    conn.close()
-
-    if user is None:
-        return None
-
-    return dict(user)
 
 
 @app.route("/statistics")
@@ -1930,10 +2679,329 @@ def delete_account():
     )
 
 
+@app.route("/grammar/<int:grammar_id>/notes", methods=["GET", "POST"])
+def grammar_notes(grammar_id):
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    ensure_notes_tables()
+
+    grammar = get_grammar_detail(grammar_id)
+
+    if grammar is None:
+        return "Grammar point not found.", 404
+
+    error = None
+    success = None
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        content = request.form.get("content", "").strip()
+        relation_type = request.form.get("relation_type", "related").strip()
+
+        grammar_links = [
+            {
+                "grammar_id": grammar_id,
+                "relation_type": relation_type
+            }
+        ]
+
+        ok, message = create_note_with_links(
+            user_id=session["user_id"],
+            title=title,
+            content=content,
+            grammar_links=grammar_links
+        )
+
+        if ok:
+            success = message
+        else:
+            error = message
+
+    notes = get_notes_for_grammar(
+        user_id=session["user_id"],
+        grammar_id=grammar_id
+    )
+
+    question_explanations = get_question_explanations_for_grammar(grammar_id)
+
+    return render_template(
+        "grammar_notes.html",
+        username=session["username"],
+        grammar=grammar,
+        notes=notes,
+        question_explanations=question_explanations,
+        error=error,
+        success=success
+    )
+
+
+@app.route("/notes")
+def notes_collection():
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    keyword = request.args.get("keyword", "").strip()
+    relation_type = request.args.get("relation_type", "all")
+    jlpt_level = request.args.get("jlpt_level", "all")
+    connection_filter = request.args.get("connection_filter", "all")
+    sort_by = request.args.get("sort_by", "updated_desc")
+
+    notes = get_all_notes_for_user(
+        user_id=session["user_id"],
+        keyword=keyword,
+        relation_type=relation_type,
+        jlpt_level=jlpt_level,
+        connection_filter=connection_filter,
+        sort_by=sort_by
+    )
+
+    return render_template(
+        "notes_collection.html",
+        username=session["username"],
+        notes=notes,
+        keyword=keyword,
+        selected_relation=relation_type,
+        selected_level=jlpt_level,
+        selected_connection_filter=connection_filter,
+        sort_by=sort_by
+    )
+
+
+@app.route("/notes/new", methods=["GET", "POST"])
+def new_note():
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    ensure_notes_tables()
+
+    error = None
+
+    keyword = request.args.get("keyword", "").strip()
+
+    if request.method == "POST":
+        action = request.form.get("action", "")
+
+        if action == "add_connection":
+            grammar_id = request.form.get("grammar_id")
+            relation_type = request.form.get("relation_type", "related")
+
+            if grammar_id:
+                add_draft_connection(grammar_id, relation_type, note_id=None)
+
+            keyword = request.form.get("keyword", "").strip()
+            return redirect(url_for("new_note", keyword=keyword))
+
+        if action == "remove_connection":
+            grammar_id = request.form.get("grammar_id")
+
+            if grammar_id:
+                remove_draft_connection(grammar_id, note_id=None)
+
+            keyword = request.form.get("keyword", "").strip()
+            return redirect(url_for("new_note", keyword=keyword))
+
+        if action == "clear_connections":
+            clear_draft_connections(note_id=None)
+            keyword = request.form.get("keyword", "").strip()
+            return redirect(url_for("new_note", keyword=keyword))
+
+        if action == "create_note":
+            title = request.form.get("title", "").strip()
+            content = request.form.get("content", "").strip()
+            grammar_links = get_draft_connections(note_id=None)
+
+            ok, message = create_note_with_links(
+                user_id=session["user_id"],
+                title=title,
+                content=content,
+                grammar_links=grammar_links
+            )
+
+            if ok:
+                clear_draft_connections(note_id=None)
+                return redirect(url_for("notes_collection"))
+
+            error = message
+
+    if keyword:
+        grammar_results = search_grammar_for_note_link(keyword=keyword, limit=50)
+    else:
+        grammar_results = []
+
+    connected_grammar = get_draft_connection_details(note_id=None)
+
+    return render_template(
+        "new_note.html",
+        username=session["username"],
+        grammar_results=grammar_results,
+        connected_grammar=connected_grammar,
+        keyword=keyword,
+        error=error
+    )
+
+@app.route("/notes/<int:note_id>/edit", methods=["GET", "POST"])
+def edit_note(note_id):
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    ensure_notes_tables()
+
+    note = get_note_detail(
+        user_id=session["user_id"],
+        note_id=note_id
+    )
+
+    if note is None:
+        return "Note not found.", 404
+
+    draft_key = get_note_draft_key(note_id)
+
+    # First time opening edit page: load DB connections into draft.
+    if draft_key not in session:
+        initial_connections = []
+
+        for grammar in note["connected_grammar"]:
+            initial_connections.append({
+                "grammar_id": grammar["grammar_id"],
+                "relation_type": grammar["relation_type"]
+            })
+
+        save_draft_connections(initial_connections, note_id=note_id)
+
+    error = None
+    keyword = request.args.get("keyword", "").strip()
+
+    if request.method == "POST":
+        action = request.form.get("action", "")
+
+        if action == "add_connection":
+            grammar_id = request.form.get("grammar_id")
+            relation_type = request.form.get("relation_type", "related")
+
+            if grammar_id:
+                add_draft_connection(grammar_id, relation_type, note_id=note_id)
+
+            keyword = request.form.get("keyword", "").strip()
+            return redirect(url_for("edit_note", note_id=note_id, keyword=keyword))
+
+        if action == "remove_connection":
+            grammar_id = request.form.get("grammar_id")
+
+            if grammar_id:
+                remove_draft_connection(grammar_id, note_id=note_id)
+
+            keyword = request.form.get("keyword", "").strip()
+            return redirect(url_for("edit_note", note_id=note_id, keyword=keyword))
+
+        if action == "reset_connections":
+            clear_draft_connections(note_id=note_id)
+            return redirect(url_for("edit_note", note_id=note_id, keyword=keyword))
+
+        if action == "save_note":
+            title = request.form.get("title", "").strip()
+            content = request.form.get("content", "").strip()
+            grammar_links = get_draft_connections(note_id=note_id)
+
+            ok, message = update_note_with_links(
+                user_id=session["user_id"],
+                note_id=note_id,
+                title=title,
+                content=content,
+                grammar_links=grammar_links
+            )
+
+            if ok:
+                clear_draft_connections(note_id=note_id)
+                return redirect(url_for("notes_collection"))
+
+            error = message
+
+    if keyword:
+        grammar_results = search_grammar_for_note_link(keyword=keyword, limit=50)
+    else:
+        grammar_results = []
+
+    connected_grammar = get_draft_connection_details(note_id=note_id)
+
+    return render_template(
+        "edit_note.html",
+        username=session["username"],
+        note=note,
+        grammar_results=grammar_results,
+        connected_grammar=connected_grammar,
+        keyword=keyword,
+        error=error
+    )
+
+
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("index"))
+
+
+@app.route("/notes/<int:note_id>/delete", methods=["GET", "POST"])
+def delete_note(note_id):
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    note = get_note_detail(
+        user_id=session["user_id"],
+        note_id=note_id
+    )
+
+    if note is None:
+        return "Note not found.", 404
+
+    error = None
+
+    if request.method == "POST":
+        confirm_text = request.form.get("confirm_text", "").strip()
+
+        if confirm_text != "DELETE":
+            error = "Please type DELETE to confirm note deletion."
+        else:
+            ok, message = delete_note_for_user(
+                user_id=session["user_id"],
+                note_id=note_id
+            )
+
+            if ok:
+                return redirect(url_for("notes_collection"))
+
+            error = message
+
+    return render_template(
+        "delete_note.html",
+        username=session["username"],
+        note=note,
+        error=error
+    )
+
+
+@app.route("/notes/<int:note_id>")
+def note_detail(note_id):
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    note = get_note_detail_with_explanations(
+        user_id=session["user_id"],
+        note_id=note_id
+    )
+
+    if note is None:
+        return "Note not found.", 404
+
+    return render_template(
+        "note_detail.html",
+        username=session["username"],
+        note=note
+    )
+
+
+ensure_user_account_columns()
+ensure_notes_tables()
 
 
 if __name__ == "__main__":

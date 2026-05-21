@@ -1,0 +1,289 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Note Collection</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="menu">
+    <a href="{{ url_for('new_note') }}">Create New Note</a>
+</div>
+
+<div class="card">
+    <h3>Filter and Sort Notes</h3>
+
+    <p class="section-description">
+        Search your notes by title, content, or connected grammar point.
+    </p>
+
+    <form action="{{ url_for('notes_collection') }}" method="GET" class="setup-form">
+
+        <label for="keyword"><strong>Keyword</strong></label>
+        <input
+            type="text"
+            name="keyword"
+            id="keyword"
+            value="{{ keyword }}"
+            placeholder="Example: あげく, opposite, confusing"
+        >
+
+        <label for="relation_type"><strong>Relation type</strong></label>
+        <select name="relation_type" id="relation_type">
+            <option value="all" {% if selected_relation == "all" %}selected{% endif %}>All relations</option>
+            <option value="related" {% if selected_relation == "related" %}selected{% endif %}>Related</option>
+            <option value="similar" {% if selected_relation == "similar" %}selected{% endif %}>Similar</option>
+            <option value="opposite" {% if selected_relation == "opposite" %}selected{% endif %}>Opposite</option>
+            <option value="confusing" {% if selected_relation == "confusing" %}selected{% endif %}>Confusing</option>
+            <option value="example" {% if selected_relation == "example" %}selected{% endif %}>Example</option>
+            <option value="personal memory" {% if selected_relation == "personal memory" %}selected{% endif %}>Personal memory</option>
+            <option value="other" {% if selected_relation == "other" %}selected{% endif %}>Other</option>
+        </select>
+		
+		<label for="jlpt_level"><strong>JLPT Level</strong></label>
+		<select name="jlpt_level" id="jlpt_level">
+			<option value="all" {% if selected_level == "all" %}selected{% endif %}>All levels</option>
+			<option value="N1" {% if selected_level == "N1" %}selected{% endif %}>N1 only</option>
+			<option value="N2" {% if selected_level == "N2" %}selected{% endif %}>N2 only</option>
+		</select>
+
+		<label for="connection_filter"><strong>Connection count</strong></label>
+		<select name="connection_filter" id="connection_filter">
+			<option value="all" {% if selected_connection_filter == "all" %}selected{% endif %}>All notes</option>
+			<option value="single" {% if selected_connection_filter == "single" %}selected{% endif %}>Single grammar only</option>
+			<option value="multiple" {% if selected_connection_filter == "multiple" %}selected{% endif %}>Multiple grammar points only</option>
+		</select>
+
+        <label for="sort_by"><strong>Sort by</strong></label>
+        <select name="sort_by" id="sort_by">
+            <option value="updated_desc" {% if sort_by == "updated_desc" %}selected{% endif %}>Recently updated first</option>
+            <option value="updated_asc" {% if sort_by == "updated_asc" %}selected{% endif %}>Oldest updated first</option>
+            <option value="created_desc" {% if sort_by == "created_desc" %}selected{% endif %}>Newest created first</option>
+            <option value="created_asc" {% if sort_by == "created_asc" %}selected{% endif %}>Oldest created first</option>
+            <option value="title_asc" {% if sort_by == "title_asc" %}selected{% endif %}>Title A-Z</option>
+            <option value="title_desc" {% if sort_by == "title_desc" %}selected{% endif %}>Title Z-A</option>
+			<option value="connection_count_desc" {% if sort_by == "connection_count_desc" %}selected{% endif %}>Most connected grammar first</option>
+			<option value="connection_count_asc" {% if sort_by == "connection_count_asc" %}selected{% endif %}>Fewest connected grammar first</option>
+        </select>
+
+        <button type="submit">Apply Filter</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>All Notes</h3>
+
+    <p><strong>Total shown:</strong> {{ notes|length }}</p>
+
+    {% if notes %}
+
+        <div class="card-preview-box">
+            <h4>Quick Jump</h4>
+
+            <p class="section-description">
+                Click a note below to jump directly to it.
+            </p>
+
+            <div class="card-preview-list">
+                {% for note in notes %}
+                    <button
+                        type="button"
+                        class="card-preview-item"
+                        onclick="jumpToSlide({{ loop.index0 }}, event)"
+                    >
+                        {{ loop.index }}. {{ note.title }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% for note in notes %}
+            <div class="mastery-grammar-card slide-card">
+
+                <div class="mastery-grammar-header">
+                    <div>
+                        <h4 class="mastery-grammar-title">
+                            {{ loop.index }}. {{ note.title }}
+                        </h4>
+
+                        <p class="mastery-grammar-subtitle">
+                            Updated: {{ note.updated_at }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mastery-grammar-section">
+                    <h5>Note Content</h5>
+                    <p>{{ note.content }}</p>
+                </div>
+
+                <div class="mastery-grammar-divider"></div>
+
+                <div class="mastery-grammar-section">
+                    <h5>Connected Grammar Points</h5>
+
+                    {% if note.connected_grammar %}
+                        {% for grammar in note.connected_grammar %}
+                            <div class="connected-grammar-item">
+
+                                <p>
+                                    <strong>{{ grammar.grammar }}</strong>
+
+                                    {% if grammar.reading %}
+                                        <span>（{{ grammar.reading }}）</span>
+                                    {% endif %}
+
+                                    <span class="jlpt-tag">{{ grammar.jlpt_level }}</span>
+                                    <span class="relation-tag relation-{{ grammar.relation_type|replace(' ', '-') }}">
+    {{ grammar.relation_type }}
+</span>
+                                </p>
+
+                                <p>{{ grammar.meaning }}</p>
+
+                                <div class="button-row">
+                                    <button
+                                        type="button"
+                                        class="small-toggle-button"
+                                        onclick="toggleGrammarDetails('grammar-details-{{ note.note_id }}-{{ grammar.grammar_id }}')"
+                                    >
+                                        Show Details
+                                    </button>
+
+                                    <a class="small-button" href="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}">
+                                        Open Grammar Notes
+                                    </a>
+                                </div>
+
+                                <div
+                                    id="grammar-details-{{ note.note_id }}-{{ grammar.grammar_id }}"
+                                    class="collapsible-grammar-details"
+                                    style="display: none;"
+                                >
+                                    <div class="mastery-grammar-divider"></div>
+
+                                    <div class="mastery-grammar-section">
+                                        <h5>Grammar Details</h5>
+
+                                        <p><strong>Grammar:</strong> {{ grammar.grammar }}</p>
+
+                                        {% if grammar.reading %}
+                                            <p><strong>Reading:</strong> {{ grammar.reading }}</p>
+                                        {% endif %}
+
+                                        <p><strong>Meaning:</strong> {{ grammar.meaning }}</p>
+
+                                        {% if grammar.formation %}
+                                            <p><strong>Formation:</strong> {{ grammar.formation }}</p>
+                                        {% endif %}
+
+                                        {% if grammar.example_sentence %}
+                                            <p><strong>Example sentence:</strong> {{ grammar.example_sentence }}</p>
+                                        {% endif %}
+
+                                        {% if grammar.example_translation %}
+                                            <p><strong>Example translation:</strong> {{ grammar.example_translation }}</p>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="mastery-grammar-divider"></div>
+
+                                    <div class="mastery-grammar-section">
+                                        <h5>Question Explanations</h5>
+
+                                        {% if grammar.question_explanations %}
+                                            {% for explanation in grammar.question_explanations %}
+                                                <div class="question-explanation-box">
+                                                    <p>
+                                                        <strong>Difficulty:</strong>
+                                                        {{ explanation.difficulty }}
+                                                    </p>
+
+                                                    {% if explanation.question_text %}
+                                                        <p><strong>Question:</strong> {{ explanation.question_text }}</p>
+                                                    {% endif %}
+
+                                                    {% if explanation.explanation %}
+                                                        <p><strong>Explanation:</strong> {{ explanation.explanation }}</p>
+                                                    {% else %}
+                                                        <p>No explanation saved for this question.</p>
+                                                    {% endif %}
+                                                </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <p>No question explanations found for this grammar point.</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No grammar points connected to this note.</p>
+                    {% endif %}
+                </div>
+
+                <div class="mastery-grammar-divider"></div>
+
+                <div class="mastery-grammar-section">
+                    <p><strong>Created:</strong> {{ note.created_at }}</p>
+                    <p><strong>Updated:</strong> {{ note.updated_at }}</p>
+                </div>
+
+                <div class="button-row">
+					<a class="small-button" href="{{ url_for('note_detail', note_id=note.note_id) }}">
+						Open Note
+					</a>
+
+					<a class="small-button" href="{{ url_for('edit_note', note_id=note.note_id) }}">
+						Edit Note
+					</a>
+
+					<a class="small-button danger-link" href="{{ url_for('delete_note', note_id=note.note_id) }}">
+						Delete Note
+					</a>
+				</div>
+
+            </div>
+        {% endfor %}
+
+        <div class="slide-controls">
+            <button type="button" onclick="firstSlide(event)">First</button>
+            <button type="button" onclick="previousSlide(event)">Previous</button>
+
+            <span id="slide-counter">
+                1 / {{ notes|length }}
+            </span>
+
+            <button type="button" onclick="nextSlide(event)">Next</button>
+            <button type="button" onclick="lastSlide(event)">Last</button>
+        </div>
+
+    {% else %}
+        <p>No notes found.</p>
+    {% endif %}
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+<script>
+    function toggleGrammarDetails(elementId) {
+        const target = document.getElementById(elementId);
+
+        if (!target) {
+            return;
+        }
+
+        if (target.style.display === "none" || target.style.display === "") {
+            target.style.display = "block";
+        } else {
+            target.style.display = "none";
+        }
+    }
+</script>
+
+<script src="{{ url_for('static', filename='slide_cards.js') }}"></script>
+
+{% endblock %}

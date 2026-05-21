@@ -1,0 +1,59 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Delete Note</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="card danger-feature">
+    <h3>Confirm Delete</h3>
+
+    <p class="section-description">
+        This will permanently delete this note and remove all grammar point connections.
+        This action cannot be undone.
+    </p>
+
+    <div class="mastery-grammar-card">
+        <h4>{{ note.title }}</h4>
+        <p>{{ note.content }}</p>
+
+        <div class="mastery-grammar-divider"></div>
+
+        <h5>Connected Grammar Points</h5>
+
+        {% if note.connected_grammar %}
+            {% for grammar in note.connected_grammar %}
+                <p>
+                    <strong>{{ grammar.grammar }}</strong>
+                    {% if grammar.reading %}
+                        （{{ grammar.reading }}）
+                    {% endif %}
+                    <span class="jlpt-tag">{{ grammar.jlpt_level }}</span>
+                    <span class="relation-tag relation-{{ grammar.relation_type|replace(' ', '-') }}">
+    {{ grammar.relation_type }}
+</span>
+                </p>
+            {% endfor %}
+        {% else %}
+            <p>No connected grammar points.</p>
+        {% endif %}
+    </div>
+
+    {% if error %}
+        <p class="error-message">{{ error }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('delete_note', note_id=note.note_id) }}" method="POST" class="setup-form">
+        <label for="confirm_text"><strong>Type DELETE to confirm</strong></label>
+        <input type="text" name="confirm_text" id="confirm_text" required>
+
+        <button type="submit">Delete Note</button>
+    </form>
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('notes_collection') }}">Cancel and go back</a>
+</div>
+
+{% endblock %}

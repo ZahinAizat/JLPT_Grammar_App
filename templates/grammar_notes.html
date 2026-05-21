@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Grammar Notes</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="mastery-grammar-card">
+
+    <div class="mastery-grammar-header">
+        <div>
+            <h4 class="mastery-grammar-title">
+                {{ grammar.grammar }}
+            </h4>
+
+            {% if grammar.reading %}
+                <p class="mastery-grammar-subtitle">{{ grammar.reading }}</p>
+            {% endif %}
+        </div>
+
+        <div class="mastery-badge-group">
+            <span class="jlpt-tag">{{ grammar.jlpt_level }}</span>
+        </div>
+    </div>
+
+    <div class="mastery-grammar-section">
+        <h5>Grammar Details</h5>
+
+        <p><strong>Meaning:</strong> {{ grammar.meaning }}</p>
+
+        {% if grammar.formation %}
+            <p><strong>Formation:</strong> {{ grammar.formation }}</p>
+        {% endif %}
+
+        {% if grammar.example_sentence %}
+            <p><strong>Example sentence:</strong> {{ grammar.example_sentence }}</p>
+        {% endif %}
+
+        {% if grammar.example_translation %}
+            <p><strong>Example translation:</strong> {{ grammar.example_translation }}</p>
+        {% endif %}
+    </div>
+
+</div>
+
+<div class="card">
+    <h3>Question Explanations</h3>
+
+    <p class="section-description">
+        These explanations come from quiz questions connected to this grammar point.
+    </p>
+
+    {% if question_explanations %}
+        {% for explanation in question_explanations %}
+            <div class="mastery-grammar-card">
+
+                <div class="mastery-grammar-header">
+                    <div>
+                        <h4 class="mastery-grammar-title">
+                            Explanation {{ loop.index }}
+                        </h4>
+                    </div>
+
+                    {% if explanation.difficulty %}
+                        <div class="mastery-badge-group">
+                            <span class="jlpt-tag">{{ explanation.difficulty }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mastery-grammar-section">
+                    {% if explanation.question_text %}
+                        <p><strong>Question:</strong> {{ explanation.question_text }}</p>
+                    {% endif %}
+
+                    {% if explanation.explanation %}
+                        <p><strong>Explanation:</strong> {{ explanation.explanation }}</p>
+                    {% else %}
+                        <p>No explanation saved for this question.</p>
+                    {% endif %}
+                </div>
+
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No question explanations found for this grammar point.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>Add New Note</h3>
+
+    <p class="section-description">
+        Add your own note for this grammar point. Later, you will be able to connect one note
+        to multiple grammar points.
+    </p>
+
+    {% if error %}
+        <p class="error-message">{{ error }}</p>
+    {% endif %}
+
+    {% if success %}
+        <p class="success-message">{{ success }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}" method="POST" class="setup-form">
+
+        <label for="title"><strong>Note title</strong></label>
+        <input
+            type="text"
+            name="title"
+            id="title"
+            placeholder="Example: Difference from ごと"
+            required
+        >
+
+        <label for="relation_type"><strong>Relation type</strong></label>
+        <select name="relation_type" id="relation_type">
+            <option value="related">Related</option>
+            <option value="similar">Similar</option>
+            <option value="opposite">Opposite</option>
+            <option value="confusing">Confusing</option>
+            <option value="example">Example</option>
+            <option value="personal memory">Personal memory</option>
+            <option value="other">Other</option>
+        </select>
+
+        <label for="content"><strong>Note content</strong></label>
+        <textarea
+            name="content"
+            id="content"
+            rows="6"
+            placeholder="Write your note here..."
+            required
+        ></textarea>
+
+        <button type="submit">Save Note</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Notes Connected to This Grammar</h3>
+
+    {% if notes %}
+        {% for note in notes %}
+            <div class="mastery-grammar-card">
+
+                <div class="mastery-grammar-header">
+                    <div>
+                        <h4 class="mastery-grammar-title">
+                            {{ loop.index }}. {{ note.title }}
+                        </h4>
+
+                        <p class="mastery-grammar-subtitle">
+                            Relation: {{ note.relation_type }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mastery-grammar-section">
+                    <p>{{ note.content }}</p>
+                </div>
+
+                <div class="mastery-grammar-divider"></div>
+
+                <div class="mastery-grammar-section">
+                    <p><strong>Created:</strong> {{ note.created_at }}</p>
+                    <p><strong>Updated:</strong> {{ note.updated_at }}</p>
+                </div>
+
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No notes connected to this grammar point yet.</p>
+    {% endif %}
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

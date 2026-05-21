@@ -56,20 +56,26 @@
         </div>
 
         <div class="mastery-badge-group">
-            {% if is_correct %}
-                <span class="status-pill correct-pill">Correct</span>
-            {% else %}
-                <span class="status-pill wrong-pill">Wrong</span>
-            {% endif %}
+			{% if is_correct %}
+				<span class="status-pill correct-pill">Correct</span>
+			{% else %}
+				<span class="status-pill wrong-pill">Wrong</span>
+			{% endif %}
 
-            {% if question.jlpt_level %}
-                <span class="jlpt-tag">{{ question.jlpt_level }}</span>
-            {% endif %}
+			{% if question.jlpt_level %}
+				<span class="jlpt-tag">{{ question.jlpt_level }}</span>
+			{% endif %}
 
-            {% if question.mastery_level %}
-                <span class="mastery-tag">{{ question.mastery_level|capitalize }}</span>
-            {% endif %}
-        </div>
+			{% if question.mastery_level %}
+				<span class="mastery-tag">{{ question.mastery_level|capitalize }}</span>
+			{% endif %}
+
+			<span class="note-count-tag">Notes: {{ question.note_count }}</span>
+
+			<a class="note-button" href="{{ url_for('grammar_notes', grammar_id=question.grammar_id) }}">
+				Notes
+			</a>
+		</div>
     </div>
 
     <div class="mastery-grammar-section">
@@ -189,14 +195,20 @@
                 </div>
 
                 <div class="mastery-badge-group">
-                    {% if choice.grammar_id == question.grammar_id %}
-                        <span class="status-pill correct-pill">Correct choice</span>
-                    {% elif selected_choice and choice.grammar_id == selected_choice.grammar_id %}
-                        <span class="status-pill wrong-pill">Your choice</span>
-                    {% else %}
-                        <span class="jlpt-tag">Other choice</span>
-                    {% endif %}
-                </div>
+					{% if choice.grammar_id == question.grammar_id %}
+						<span class="status-pill correct-pill">Correct choice</span>
+					{% elif selected_choice and choice.grammar_id == selected_choice.grammar_id %}
+						<span class="status-pill wrong-pill">Your choice</span>
+					{% else %}
+						<span class="jlpt-tag">Other choice</span>
+					{% endif %}
+					
+					<span class="note-count-tag">Notes: {{ choice.note_count }}</span>
+					
+					<a class="note-button" href="{{ url_for('grammar_notes', grammar_id=choice.grammar_id) }}">
+						Notes
+					</a>
+				</div>
             </div>
 
             <div class="mastery-grammar-section">

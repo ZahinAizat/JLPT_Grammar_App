@@ -1,0 +1,139 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Note Detail</h2>
+
+<p>Current user: <strong>{{ username }}</strong></p>
+
+<div class="mastery-grammar-card">
+
+    <div class="mastery-grammar-header">
+        <div>
+            <h4 class="mastery-grammar-title">
+                {{ note.title }}
+            </h4>
+
+            <p class="mastery-grammar-subtitle">
+                Updated: {{ note.updated_at }}
+            </p>
+        </div>
+    </div>
+
+    <div class="mastery-grammar-section">
+        <h5>Note Content</h5>
+        <p>{{ note.content }}</p>
+    </div>
+
+    <div class="mastery-grammar-divider"></div>
+
+    <div class="mastery-grammar-section">
+        <p><strong>Created:</strong> {{ note.created_at }}</p>
+        <p><strong>Updated:</strong> {{ note.updated_at }}</p>
+    </div>
+
+    <div class="button-row">
+        <a class="small-button" href="{{ url_for('edit_note', note_id=note.note_id) }}">
+            Edit Note
+        </a>
+
+        <a class="small-button danger-link" href="{{ url_for('delete_note', note_id=note.note_id) }}">
+            Delete Note
+        </a>
+    </div>
+
+</div>
+
+<div class="card">
+    <h3>Connected Grammar Points</h3>
+
+    <p class="section-description">
+        These grammar points are connected to this note. Question explanations are shown automatically from the quiz question table.
+    </p>
+
+    {% if note.connected_grammar %}
+        {% for grammar in note.connected_grammar %}
+            <div class="mastery-grammar-card">
+
+                <div class="mastery-grammar-header">
+                    <div>
+                        <h4 class="mastery-grammar-title">
+                            {{ loop.index }}. {{ grammar.grammar }}
+                        </h4>
+
+                        {% if grammar.reading %}
+                            <p class="mastery-grammar-subtitle">{{ grammar.reading }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mastery-badge-group">
+                        <span class="jlpt-tag">{{ grammar.jlpt_level }}</span>
+                        <span class="relation-tag relation-{{ grammar.relation_type|replace(' ', '-') }}">
+    {{ grammar.relation_type }}
+</span>
+                    </div>
+                </div>
+
+                <div class="mastery-grammar-section">
+                    <h5>Grammar Details</h5>
+
+                    <p><strong>Meaning:</strong> {{ grammar.meaning }}</p>
+
+                    {% if grammar.formation %}
+                        <p><strong>Formation:</strong> {{ grammar.formation }}</p>
+                    {% endif %}
+
+                    {% if grammar.example_sentence %}
+                        <p><strong>Example sentence:</strong> {{ grammar.example_sentence }}</p>
+                    {% endif %}
+
+                    {% if grammar.example_translation %}
+                        <p><strong>Example translation:</strong> {{ grammar.example_translation }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="mastery-grammar-divider"></div>
+
+                <div class="mastery-grammar-section">
+                    <h5>Question Explanations</h5>
+
+                    {% if grammar.question_explanations %}
+                        {% for explanation in grammar.question_explanations %}
+                            <div class="question-explanation-box">
+                                <p><strong>Difficulty:</strong> {{ explanation.difficulty }}</p>
+
+                                {% if explanation.question_text %}
+                                    <p><strong>Question:</strong> {{ explanation.question_text }}</p>
+                                {% endif %}
+
+                                {% if explanation.explanation %}
+                                    <p><strong>Explanation:</strong> {{ explanation.explanation }}</p>
+                                {% else %}
+                                    <p>No explanation saved for this question.</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No question explanations found for this grammar point.</p>
+                    {% endif %}
+                </div>
+
+                <div class="button-row">
+                    <a class="small-button" href="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}">
+                        Open Grammar Notes
+                    </a>
+                </div>
+
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No grammar points connected to this note.</p>
+    {% endif %}
+</div>
+
+<div class="menu">
+    <a href="{{ url_for('notes_collection') }}">Back to Note Collection</a>
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+
+{% endblock %}

@@ -95,9 +95,14 @@
                     </div>
 
                     <div class="mastery-badge-group">
-                        <span class="mastery-tag">{{ item.mastery_level|capitalize }}</span>
-                        <span class="jlpt-tag">{{ item.jlpt_level }}</span>
-                    </div>
+						<span class="mastery-tag">{{ item.mastery_level|capitalize }}</span>
+						<span class="jlpt-tag">{{ item.jlpt_level }}</span>
+						<span class="note-count-tag">Notes: {{ item.note_count }}</span>
+
+						<a class="note-button" href="{{ url_for('grammar_notes', grammar_id=item.grammar_id) }}">
+							Notes
+						</a>
+					</div>
                 </div>
 
                 <div class="mastery-grammar-section">
