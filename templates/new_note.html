@@ -144,13 +144,11 @@
         >
 
         <label for="content"><strong>Note content</strong></label>
-        <textarea
-            name="content"
-            id="content"
-            rows="8"
-            placeholder="Write your note here..."
-            required
-        ></textarea>
+        <label for="note-editor" class="form-label">Note Content</label>
+
+		<input type="hidden" name="content" id="note-content-input">
+
+		<div id="note-editor" class="quill-note-editor"></div>
 
         <button type="submit">Create Note With Connected Grammar Points</button>
     </form>
@@ -160,5 +158,32 @@
     <a href="{{ url_for('notes_collection') }}">Back to Note Collection</a>
     <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
 </div>
+
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+
+<script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+
+<script>
+    const quill = new Quill("#note-editor", {
+        theme: "snow",
+        placeholder: "Write your note here...",
+        modules: {
+            toolbar: [
+                [{ "header": [2, 3, false] }],
+                ["bold", "italic", "underline"],
+                [{ "list": "ordered" }, { "list": "bullet" }],
+                ["link"],
+                ["clean"]
+            ]
+        }
+    });
+
+    const noteForm = document.querySelector("form");
+    const noteContentInput = document.getElementById("note-content-input");
+
+    noteForm.addEventListener("submit", function () {
+        noteContentInput.value = quill.root.innerHTML;
+    });
+</script>
 
 {% endblock %}

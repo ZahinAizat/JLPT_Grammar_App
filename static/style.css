@@ -742,3 +742,39 @@ button {
     background: #eeeeee;
     color: #212121;
 }
+
+.note-content {
+    white-space: pre-wrap;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.quill-note-editor {
+    min-height: 220px;
+    background: #ffffff;
+}
+
+.ql-toolbar.ql-snow {
+    border-radius: 12px 12px 0 0;
+    border-color: #d1d5db;
+}
+
+.ql-container.ql-snow {
+    border-radius: 0 0 12px 12px;
+    border-color: #d1d5db;
+    font-size: 15px;
+}
+
+.note-content p {
+    margin-bottom: 10px;
+}
+
+.note-content ul,
+.note-content ol {
+    margin-left: 24px;
+    margin-bottom: 10px;
+}
+
+.note-content strong {
+    font-weight: 700;
+}
