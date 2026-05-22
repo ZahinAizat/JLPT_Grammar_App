@@ -1,6 +1,10 @@
 import os
 import random
 import sqlite3
+import html
+
+import re
+from markupsafe import Markup, escape
 
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -13,6 +17,33 @@ from database import (
 
 
 app = Flask(__name__)
+
+@app.template_filter("markdown_note")
+def markdown_note_filter(text):
+    if text is None:
+        return ""
+
+    escaped_text = str(escape(str(text)))
+    escaped_text = escaped_text.replace("\r\n", "\n").replace("\r", "\n")
+
+    escaped_text = re.sub(
+        r"\*\*(.+?)\*\*",
+        r"<strong>\1</strong>",
+        escaped_text
+    )
+
+    paragraphs = escaped_text.split("\n\n")
+    html_parts = []
+
+    for paragraph in paragraphs:
+        paragraph = paragraph.strip()
+
+        if paragraph:
+            paragraph = paragraph.replace("\n", "<br>")
+            html_parts.append(f"<p>{paragraph}</p>")
+
+    return Markup("".join(html_parts))
+
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 
 COOLDOWN_SIZE = 2
@@ -2127,6 +2158,26 @@ def get_note_count_for_grammar(user_id, grammar_id):
         return 0
 
     return row["note_count"]
+
+
+def render_note_markdown(text):
+    if text is None:
+        return ""
+
+    escaped_text = html.escape(text)
+
+    rendered_html = markdown.markdown(
+        escaped_text,
+        extensions=[
+            "nl2br",
+            "sane_lists"
+        ]
+    )
+
+    return rendered_html
+
+
+app.jinja_env.filters["markdown_note"] = render_note_markdown
 
 
 @app.route("/")
