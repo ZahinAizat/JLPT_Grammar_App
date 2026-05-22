@@ -2860,6 +2860,9 @@ def new_note():
         if action == "create_note":
             title = request.form.get("title", "").strip()
             content = request.form.get("content", "").strip()
+            
+            if not content:
+                content = request.form.get("note_content", "").strip()
             grammar_links = get_draft_connections(note_id=None)
 
             ok, message = create_note_with_links(
@@ -2952,6 +2955,10 @@ def edit_note(note_id):
         if action == "save_note":
             title = request.form.get("title", "").strip()
             content = request.form.get("content", "").strip()
+            
+            if not content:
+                content = request.form.get("note_content", "").strip()
+            
             grammar_links = get_draft_connections(note_id=note_id)
 
             ok, message = update_note_with_links(

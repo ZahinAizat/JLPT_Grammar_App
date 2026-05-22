@@ -1,190 +1,213 @@
-﻿{% extends "base.html" %}
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Note - JLPT Grammar App</title>
 
-{% block content %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-<h2>Edit Note</h2>
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+</head>
 
-<p>Current user: <strong>{{ username }}</strong></p>
+<body>
+    <div class="page-container">
+        <div class="app-card">
 
-<div class="card">
-    <h3>Currently Connected Grammar Points</h3>
-
-    <p class="section-description">
-        These grammar points will be connected to this note after you save changes.
-        You can add or remove connections before saving.
-    </p>
-
-    {% if connected_grammar %}
-        {% for grammar in connected_grammar %}
-            <div class="connected-grammar-item">
-                <p>
-                    <strong>{{ grammar.grammar }}</strong>
-
-                    {% if grammar.reading %}
-                        <span>（{{ grammar.reading }}）</span>
-                    {% endif %}
-
-                    <span class="jlpt-tag">{{ grammar.jlpt_level }}</span>
-                    <span class="relation-tag relation-{{ grammar.relation_type|replace(' ', '-') }}">
-    {{ grammar.relation_type }}
-</span>
-                </p>
-
-                <p>{{ grammar.meaning }}</p>
-
-                <form action="{{ url_for('edit_note', note_id=note.note_id) }}" method="POST">
-                    <input type="hidden" name="action" value="remove_connection">
-                    <input type="hidden" name="grammar_id" value="{{ grammar.grammar_id }}">
-                    <input type="hidden" name="keyword" value="{{ keyword }}">
-                    <button type="submit">Remove Connection</button>
-                </form>
+            <div class="page-header">
+                <h2>Edit Note Content</h2>
+                <p class="page-subtitle">Edit your note and manage connected grammar points.</p>
             </div>
-        {% endfor %}
 
-        <form action="{{ url_for('edit_note', note_id=note.note_id) }}" method="POST">
-            <input type="hidden" name="action" value="reset_connections">
-            <input type="hidden" name="keyword" value="{{ keyword }}">
-            <button type="submit">Reset Connections to Original</button>
-        </form>
-    {% else %}
-        <p>No connected grammar points yet.</p>
-    {% endif %}
-</div>
+            {% if error %}
+                <div class="error-box">
+                    {{ error }}
+                </div>
+            {% endif %}
 
-<div class="card">
-    <h3>Search Grammar Points to Add</h3>
-
-    <p class="section-description">
-        Search for a grammar point, choose its relation type, then click Add Connection.
-        Added connections stay even if you search another keyword.
-    </p>
-
-    <form action="{{ url_for('edit_note', note_id=note.note_id) }}" method="GET" class="setup-form">
-        <label for="keyword"><strong>Search grammar</strong></label>
-        <input
-            type="text"
-            name="keyword"
-            id="keyword"
-            value="{{ keyword }}"
-            placeholder="Example: あげく, 末に, result"
-        >
-
-        <button type="submit">Search Grammar</button>
-    </form>
-
-    {% if grammar_results %}
-        <div class="mastery-grammar-divider"></div>
-
-        {% for item in grammar_results %}
-            <div class="connected-grammar-item">
-                <p>
-                    <strong>{{ item.grammar }}</strong>
-
-                    {% if item.reading %}
-                        <span>（{{ item.reading }}）</span>
-                    {% endif %}
-
-                    <span class="jlpt-tag">{{ item.jlpt_level }}</span>
-                </p>
-
-                <p>{{ item.meaning }}</p>
-
-                <form action="{{ url_for('edit_note', note_id=note.note_id) }}" method="POST" class="setup-form">
-                    <input type="hidden" name="action" value="add_connection">
-                    <input type="hidden" name="grammar_id" value="{{ item.grammar_id }}">
-                    <input type="hidden" name="keyword" value="{{ keyword }}">
-
-                    <label for="relation_type_{{ item.grammar_id }}">
-                        <strong>Relation type</strong>
-                    </label>
-
-                    <select
-                        name="relation_type"
-                        id="relation_type_{{ item.grammar_id }}"
+            <form method="POST" id="note-form">
+                <div class="form-group">
+                    <label for="title">Note title</label>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        value="{{ note.title }}"
+                        required
                     >
-                        <option value="related">Related</option>
-                        <option value="similar">Similar</option>
-                        <option value="opposite">Opposite</option>
-                        <option value="confusing">Confusing</option>
-                        <option value="example">Example</option>
-                        <option value="personal memory">Personal memory</option>
-                        <option value="other">Other</option>
-                    </select>
+                </div>
 
-                    <button type="submit">Add Connection</button>
-                </form>
+                <div class="form-group">
+                    <label for="note-editor">Note content</label>
+
+                    <input type="hidden" name="content" id="note-content-input">
+					<input type="hidden" name="note_content" id="note-content-input-alt">
+
+                    <div id="note-editor" class="quill-note-editor">
+                        {{ note.content|safe }}
+                    </div>
+                </div>
+
+                <div class="button-row">
+                    <button type="submit" class="primary-button">
+                        Save Changes
+                    </button>
+
+                    <a href="{{ url_for('note_detail', note_id=note.note_id) }}" class="secondary-button">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+
+            <hr>
+
+            <div class="section-block">
+                <h3>Connected Grammar Points</h3>
+
+                {% if connected_grammar %}
+                    <div class="connected-grammar-list">
+                        {% for grammar in connected_grammar %}
+                            <div class="connected-grammar-card">
+                                <div>
+                                    <h4 class="mastery-grammar-title">
+                                        {{ grammar.grammar }}
+                                    </h4>
+
+                                    <p class="mastery-grammar-subtitle">
+                                        {{ grammar.jlpt_level }} | {{ grammar.meaning }}
+                                    </p>
+                                </div>
+
+                                <div class="mastery-badge-group">
+                                    <span class="relation-tag relation-{{ grammar.relation_type|replace(' ', '-') }}">
+                                        {{ grammar.relation_type }}
+                                    </span>
+
+                                    <form method="POST" action="{{ url_for('edit_note', note_id=note.note_id) }}">
+										<input type="hidden" name="action" value="remove_connection">
+										<input type="hidden" name="grammar_id" value="{{ grammar.grammar_id }}">
+										<input type="hidden" name="keyword" value="{{ keyword or '' }}">
+
+										<button type="submit" class="danger-small-button">
+											Remove
+										</button>
+									</form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-message">
+                        No grammar points connected yet.
+                    </p>
+                {% endif %}
             </div>
-        {% endfor %}
-    {% else %}
-		{% if keyword %}
-			<p>No grammar points found. Try searching another keyword.</p>
-		{% else %}
-			<p>Enter a keyword above to search for grammar points.</p>
-		{% endif %}
-	{% endif %}
-</div>
 
-<div class="card">
-    <h3>Edit Note Content</h3>
+            <div class="section-block">
+                <h3>Search Grammar to Connect</h3>
 
-    {% if error %}
-        <p class="error-message">{{ error }}</p>
-    {% endif %}
+                <form method="GET" action="{{ url_for('edit_note', note_id=note.note_id) }}">
+                    <div class="search-row">
+                        <input
+                            type="text"
+                            name="keyword"
+                            value="{{ keyword or '' }}"
+                            placeholder="Search grammar, reading, romaji, meaning..."
+                        >
 
-    <form action="{{ url_for('edit_note', note_id=note.note_id) }}" method="POST" class="setup-form">
-        <input type="hidden" name="action" value="save_note">
+                        <button type="submit" class="secondary-button">
+                            Search
+                        </button>
+                    </div>
+                </form>
 
-        <label for="title"><strong>Note title</strong></label>
-        <input
-            type="text"
-            name="title"
-            id="title"
-            value="{{ note.title }}"
-            required
-        >
+                {% if grammar_results %}
+                    <div class="grammar-search-results">
+                        {% for grammar in grammar_results %}
+                            <div class="grammar-result-card">
+                                <div>
+                                    <h4 class="mastery-grammar-title">
+                                        {{ grammar.grammar }}
+                                    </h4>
 
-        <label for="content"><strong>Note content</strong></label>
-        <label for="note-editor" class="form-label">Note Content</label>
+                                    <p class="mastery-grammar-subtitle">
+                                        {{ grammar.jlpt_level }} | {{ grammar.meaning }}
+                                    </p>
 
-		<input type="hidden" name="content" id="note-content-input">
+                                    {% if grammar.reading %}
+                                        <p class="mastery-grammar-subtitle">
+                                            Reading: {{ grammar.reading }}
+                                        </p>
+                                    {% endif %}
+                                </div>
 
-		<div id="note-editor" class="quill-note-editor">
-			{{ note.content|safe }}
-		</div>
+                                <form method="POST" action="{{ url_for('edit_note', note_id=note.note_id) }}">
+									<input type="hidden" name="action" value="add_connection">
+                                    <input type="hidden" name="grammar_id" value="{{ grammar.id }}">
+                                    <input type="hidden" name="keyword" value="{{ keyword or '' }}">
 
-        <button type="submit">Save Note With Connected Grammar Points</button>
-    </form>
-</div>
+                                    <label class="small-label" for="relation_type_{{ grammar.id }}">
+                                        Relation
+                                    </label>
 
-<div class="menu">
-    <a href="{{ url_for('notes_collection') }}">Back to Note Collection</a>
-    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
-</div>
-<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+                                    <select name="relation_type" id="relation_type_{{ grammar.id }}">
+                                        <option value="related">related</option>
+                                        <option value="similar">similar</option>
+                                        <option value="confusing">confusing</option>
+                                        <option value="opposite">opposite</option>
+                                    </select>
 
-<script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+                                    <button type="submit" class="small-button">
+                                        Connect
+                                    </button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% elif keyword %}
+                    <p class="empty-message">
+                        No grammar found for "{{ keyword }}".
+                    </p>
+                {% endif %}
+            </div>
 
-<script>
-    const quill = new Quill("#note-editor", {
-        theme: "snow",
-        placeholder: "Write your note here...",
-        modules: {
-            toolbar: [
-                [{ "header": [2, 3, false] }],
-                ["bold", "italic", "underline"],
-                [{ "list": "ordered" }, { "list": "bullet" }],
-                ["link"],
-                ["clean"]
-            ]
-        }
-    });
+        </div>
+    </div>
 
-    const noteForm = document.querySelector("form");
-    const noteContentInput = document.getElementById("note-content-input");
+    <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
 
-    noteForm.addEventListener("submit", function () {
-        noteContentInput.value = quill.root.innerHTML;
-    });
-</script>
+    <script>
+		const quill = new Quill("#note-editor", {
+			theme: "snow",
+			placeholder: "Write your note here...",
+			modules: {
+				toolbar: [
+					[{ "header": [2, 3, false] }],
+					["bold", "italic", "underline"],
+					[{ "list": "ordered" }, { "list": "bullet" }],
+					["link"],
+					["clean"]
+				]
+			}
+		});
 
-{% endblock %}
+		const noteForm = document.getElementById("note-form");
+		const noteContentInput = document.getElementById("note-content-input");
+		const noteContentInputAlt = document.getElementById("note-content-input-alt");
+
+		noteForm.addEventListener("submit", function () {
+			const htmlContent = quill.root.innerHTML.trim();
+			const plainText = quill.getText().trim();
+
+			if (plainText.length === 0) {
+				noteContentInput.value = "";
+				noteContentInputAlt.value = "";
+			} else {
+				noteContentInput.value = htmlContent;
+				noteContentInputAlt.value = htmlContent;
+			}
+
+			console.log("Submitting note content:", htmlContent);
+		});
+	</script>
+</body>
+</html>

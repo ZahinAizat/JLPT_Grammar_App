@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block content %}
 
@@ -16,7 +16,7 @@
 
     <div class="mastery-grammar-card">
         <h4>{{ note.title }}</h4>
-        <div class="note-content">{{ note.content }}</div>
+        <div class="note-content">{{ note.content|safe }}</div>
 
         <div class="mastery-grammar-divider"></div>
 
@@ -57,5 +57,6 @@
 </div>
 
 {% endblock %}
+
 
 

@@ -778,3 +778,307 @@ button {
 .note-content strong {
     font-weight: 700;
 }
+
+.note-content {
+    line-height: 1.7;
+    font-size: 15px;
+    color: #1f2937;
+    word-break: break-word;
+}
+
+.note-content p {
+    margin: 0 0 12px 0;
+}
+
+.note-content p:last-child {
+    margin-bottom: 0;
+}
+
+.note-content strong {
+    font-weight: 700;
+}
+
+.note-content em {
+    font-style: italic;
+}
+
+.note-content u {
+    text-decoration: underline;
+}
+
+.note-content ul,
+.note-content ol {
+    margin: 8px 0 12px 24px;
+    padding-left: 18px;
+}
+
+.note-content li {
+    margin-bottom: 6px;
+}
+
+.note-content h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 16px 0 10px 0;
+}
+
+.note-content h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 14px 0 8px 0;
+}
+
+.note-content a {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+.note-content blockquote {
+    margin: 12px 0;
+    padding: 8px 12px;
+    border-left: 4px solid #d1d5db;
+    background-color: #f9fafb;
+    color: #4b5563;
+}
+
+/* =========================
+   Note page layout fix
+   ========================= */
+
+.page-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.app-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 28px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e5e7eb;
+}
+
+.page-header {
+    margin-bottom: 22px;
+}
+
+.page-header h2 {
+    margin: 0 0 6px 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.page-subtitle {
+    margin: 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.form-group input[type="text"],
+.search-row input,
+.grammar-result-card input,
+.grammar-result-card select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.button-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 16px;
+}
+
+.primary-button,
+.secondary-button,
+.small-button,
+.danger-small-button {
+    display: inline-block;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: none;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.primary-button {
+    background-color: #2563eb;
+    color: #ffffff;
+}
+
+.secondary-button {
+    background-color: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.small-button {
+    background-color: #2563eb;
+    color: #ffffff;
+    padding: 7px 11px;
+}
+
+.danger-small-button {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    padding: 7px 11px;
+}
+
+.section-block {
+    margin-top: 26px;
+}
+
+.section-block h3 {
+    font-size: 18px;
+    margin-bottom: 14px;
+    color: #111827;
+}
+
+.connected-grammar-list,
+.grammar-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.connected-grammar-card,
+.grammar-result-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background-color: #f9fafb;
+}
+
+.mastery-grammar-title {
+    margin: 0 0 5px 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.mastery-grammar-subtitle {
+    margin: 0 0 3px 0;
+    font-size: 13px;
+    color: #4b5563;
+}
+
+.mastery-badge-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.search-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-row input {
+    flex: 1;
+}
+
+.small-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #374151;
+}
+
+.empty-message {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* =========================
+   Quill editor styling
+   ========================= */
+
+.quill-note-editor {
+    min-height: 220px;
+    background-color: #ffffff;
+}
+
+.ql-toolbar.ql-snow {
+    border-radius: 10px 10px 0 0;
+    border-color: #cbd5e1;
+}
+
+.ql-container.ql-snow {
+    border-radius: 0 0 10px 10px;
+    border-color: #cbd5e1;
+    font-size: 15px;
+    min-height: 220px;
+}
+
+.ql-editor {
+    min-height: 220px;
+    line-height: 1.7;
+}
+
+/* =========================
+   Displayed note content
+   ========================= */
+
+.note-content {
+    line-height: 1.7;
+    font-size: 15px;
+    color: #1f2937;
+    word-break: break-word;
+}
+
+.note-content p {
+    margin: 0 0 12px 0;
+}
+
+.note-content ul,
+.note-content ol {
+    margin: 8px 0 12px 24px;
+    padding-left: 18px;
+}
+
+.note-content li {
+    margin-bottom: 6px;
+}
+
+.note-content strong {
+    font-weight: 700;
+}
+
+.note-content h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 16px 0 10px 0;
+}
+
+.note-content h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 14px 0 8px 0;
+}
