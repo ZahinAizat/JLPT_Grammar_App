@@ -114,7 +114,7 @@
 
                 <div class="mastery-grammar-section">
                     <h5>Note Content</h5>
-                    <div class="note-content">{{ note.content }}</div>
+                    <div class="note-content">{{ note.content|markdown_note|safe }}</div>
                 </div>
 
                 <div class="mastery-grammar-divider"></div>
@@ -287,4 +287,5 @@
 <script src="{{ url_for('static', filename='slide_cards.js') }}"></script>
 
 {% endblock %}
+
 
