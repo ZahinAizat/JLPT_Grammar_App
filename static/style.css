@@ -1285,3 +1285,49 @@ learn page
         align-items: stretch;
     }
 }
+
+/*============================
+tables for Notes
+==============================*/
+.markdown-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.markdown-body th,
+.markdown-body td {
+    border: 1px solid #ddd;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.markdown-body th {
+    background: #f3f4f6;
+    font-weight: 700;
+}
+
+.markdown-body tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+    margin-left: 24px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.markdown-body p {
+    margin-bottom: 10px;
+}
+
+.markdown-body code {
+    background: #f3f4f6;
+    padding: 2px 5px;
+    border-radius: 5px;
+}

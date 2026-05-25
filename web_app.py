@@ -2,7 +2,8 @@ import os
 import random
 import sqlite3
 import html
-
+import markdown
+import bleach
 import re
 from markupsafe import Markup, escape
 
@@ -17,6 +18,92 @@ from database import (
 
 
 app = Flask(__name__)
+
+
+@app.template_filter("safe_note_html")
+def safe_note_html(text):
+    if not text:
+        return ""
+
+    allowed_tags = [
+        "p", "br",
+        "strong", "b",
+        "em", "i",
+        "u",
+        "ul", "ol", "li",
+        "blockquote",
+        "code", "pre",
+        "hr",
+        "h1", "h2", "h3", "h4",
+        "table", "thead", "tbody", "tfoot",
+        "tr", "th", "td",
+        "span"
+    ]
+
+    allowed_attributes = {
+        "table": ["border", "cellpadding", "cellspacing"],
+        "th": ["colspan", "rowspan"],
+        "td": ["colspan", "rowspan"],
+        "span": ["style"],
+        "p": ["style"],
+        "td": ["style", "colspan", "rowspan"],
+        "th": ["style", "colspan", "rowspan"]
+    }
+
+    allowed_styles = [
+        "text-align",
+        "font-weight",
+        "font-style",
+        "text-decoration"
+    ]
+
+    clean_html = bleach.clean(
+        text,
+        tags=allowed_tags,
+        attributes=allowed_attributes,
+        strip=True
+    )
+
+    return clean_html
+
+
+@app.template_filter("markdown_note")
+def markdown_note(text):
+    if not text:
+        return ""
+
+    html = markdown.markdown(
+        text,
+        extensions=[
+            "tables",
+            "fenced_code",
+            "nl2br",
+            "sane_lists"
+        ]
+    )
+
+    allowed_tags = [
+        "p", "br",
+        "strong", "em",
+        "ul", "ol", "li",
+        "blockquote",
+        "code", "pre",
+        "hr",
+        "table", "thead", "tbody", "tr", "th", "td",
+        "h1", "h2", "h3", "h4"
+    ]
+
+    allowed_attributes = {}
+
+    clean_html = bleach.clean(
+        html,
+        tags=allowed_tags,
+        attributes=allowed_attributes,
+        strip=True
+    )
+
+    return clean_html
+    
 
 @app.template_filter("markdown_note")
 def markdown_note_filter(text):

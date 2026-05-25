@@ -1,13 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>Edit Note - JLPT Grammar App</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
-</head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
 
 <body>
     <div class="page-container">
@@ -56,9 +53,7 @@
                     <input type="hidden" name="content" id="note-content-input">
                     <input type="hidden" name="note_content" id="note-content-input-alt">
 
-                    <div id="note-editor" class="quill-note-editor">
-                        {{ note.content|safe }}
-                    </div>
+                    <textarea id="note-editor" class="tinymce-note-editor">{{ note.content }}</textarea>
                 </div>
 
                 <div class="button-row">
@@ -232,92 +227,108 @@
         </div>
     </div>
 
-    <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
 
-    <script>
-        const NOTE_DRAFT_KEY = "edit_note_{{ note.note_id }}_unsaved_draft";
+	<script>
+		const NOTE_DRAFT_KEY = "edit_note_{{ note.note_id }}_unsaved_draft";
 
-        const quill = new Quill("#note-editor", {
-            theme: "snow",
-            placeholder: "Write your note here...",
-            modules: {
-                toolbar: [
-                    [{ "header": [2, 3, false] }],
-                    ["bold", "italic", "underline"],
-                    [{ "list": "ordered" }, { "list": "bullet" }],
-                    ["link"],
-                    ["clean"]
-                ]
+		const noteForm = document.getElementById("note-form");
+		const titleInput = document.getElementById("title");
+		const noteContentInput = document.getElementById("note-content-input");
+		const noteContentInputAlt = document.getElementById("note-content-input-alt");
+		const cancelNoteLink = document.getElementById("cancel-note-link");
+
+		tinymce.init({
+			selector: "#note-editor",
+			license_key: "gpl",
+			height: 450,
+			menubar: "edit insert format table tools",
+			plugins: "lists link table code",
+			toolbar: "undo redo | blocks | bold italic underline | bullist numlist | alignleft aligncenter alignright | table | code",
+			table_toolbar: "tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol",
+			branding: false,
+			promotion: false,
+			setup: function (editor) {
+				editor.on("init", function () {
+					restoreUnsavedDraft();
+				});
+	
+				editor.on("change keyup undo redo", function () {
+					saveUnsavedDraft();
+				});
+			}
+		});
+
+		function getEditor() {
+			return tinymce.get("note-editor");
+		}
+
+		function saveUnsavedDraft() {
+			const editor = getEditor();
+
+			if (!editor) {
+				return;
+			}
+
+			const draft = {
+				title: titleInput.value,
+				content: editor.getContent()
+			};
+
+			sessionStorage.setItem(NOTE_DRAFT_KEY, JSON.stringify(draft));
+		}
+
+		function restoreUnsavedDraft() {
+			const savedDraft = sessionStorage.getItem(NOTE_DRAFT_KEY);
+			const editor = getEditor();
+
+        if (!savedDraft || !editor) {
+            return;
+        }
+
+        try {
+            const draft = JSON.parse(savedDraft);
+
+            if (draft.title !== undefined) {
+                titleInput.value = draft.title;
             }
+
+            if (draft.content !== undefined) {
+                editor.setContent(draft.content);
+            }
+        } catch (error) {
+            console.error("Could not restore note draft:", error);
+        }
+    }
+
+    titleInput.addEventListener("input", saveUnsavedDraft);
+
+    noteForm.addEventListener("submit", function () {
+        const editor = getEditor();
+        const htmlContent = editor ? editor.getContent().trim() : "";
+        const plainText = editor ? editor.getContent({ format: "text" }).trim() : "";
+
+        if (plainText.length === 0) {
+            noteContentInput.value = "";
+            noteContentInputAlt.value = "";
+        } else {
+            noteContentInput.value = htmlContent;
+            noteContentInputAlt.value = htmlContent;
+        }
+
+        if (titleInput.value.trim() && plainText.length > 0) {
+            sessionStorage.removeItem(NOTE_DRAFT_KEY);
+        }
+
+        console.log("Submitting note content:", htmlContent);
+    });
+
+    if (cancelNoteLink) {
+        cancelNoteLink.addEventListener("click", function () {
+            sessionStorage.removeItem(NOTE_DRAFT_KEY);
         });
-
-        const noteForm = document.getElementById("note-form");
-        const titleInput = document.getElementById("title");
-        const noteContentInput = document.getElementById("note-content-input");
-        const noteContentInputAlt = document.getElementById("note-content-input-alt");
-        const cancelNoteLink = document.getElementById("cancel-note-link");
-
-        function saveUnsavedDraft() {
-            const draft = {
-                title: titleInput.value,
-                content: quill.root.innerHTML
-            };
-
-            sessionStorage.setItem(NOTE_DRAFT_KEY, JSON.stringify(draft));
-        }
-
-        function restoreUnsavedDraft() {
-            const savedDraft = sessionStorage.getItem(NOTE_DRAFT_KEY);
-
-            if (!savedDraft) {
-                return;
-            }
-
-            try {
-                const draft = JSON.parse(savedDraft);
-
-                if (draft.title !== undefined) {
-                    titleInput.value = draft.title;
-                }
-
-                if (draft.content !== undefined) {
-                    quill.root.innerHTML = draft.content;
-                }
-            } catch (error) {
-                console.error("Could not restore note draft:", error);
-            }
-        }
-
-        restoreUnsavedDraft();
-
-        titleInput.addEventListener("input", saveUnsavedDraft);
-        quill.on("text-change", saveUnsavedDraft);
-
-        noteForm.addEventListener("submit", function () {
-            const htmlContent = quill.root.innerHTML.trim();
-            const plainText = quill.getText().trim();
-
-            if (plainText.length === 0) {
-                noteContentInput.value = "";
-                noteContentInputAlt.value = "";
-            } else {
-                noteContentInput.value = htmlContent;
-                noteContentInputAlt.value = htmlContent;
-            }
-
-            if (titleInput.value.trim() && plainText.length > 0) {
-                sessionStorage.removeItem(NOTE_DRAFT_KEY);
-            }
-
-            console.log("Submitting note content:", htmlContent);
-        });
-
-        if (cancelNoteLink) {
-            cancelNoteLink.addEventListener("click", function () {
-                sessionStorage.removeItem(NOTE_DRAFT_KEY);
-            });
-        }
-    </script>
+    }
+</script>
 
     <script>
         document.querySelectorAll(".connect-grammar-form").forEach(function (form) {
@@ -412,3 +423,4 @@
     </script>
 </body>
 </html>
+
