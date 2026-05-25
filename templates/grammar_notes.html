@@ -159,7 +159,19 @@
                 </div>
 
                 <div class="mastery-grammar-section">
-                    <div class="note-content">{{ note.content|safe }}</div>
+                    <div class="button-row">
+    <a class="small-button" href="{{ url_for('notes_collection') }}#note-{{ note.note_id }}">
+        Open in Note Collection
+    </a>
+
+    <a class="small-button" href="{{ url_for('note_detail', note_id=note.note_id) }}">
+        Open Note Detail
+    </a>
+
+    <a class="small-button" href="{{ url_for('edit_note', note_id=note.note_id) }}">
+        Edit Note
+    </a>
+</div>
                 </div>
 
                 <div class="mastery-grammar-divider"></div>
@@ -181,6 +193,7 @@
 </div>
 
 {% endblock %}
+
 
 
 
