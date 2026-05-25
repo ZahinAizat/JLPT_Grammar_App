@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Learn Grammar - JLPT Grammar App</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="app-card">
+
+            <div class="page-header">
+                <h2>Learn Grammar</h2>
+                <p class="page-subtitle">
+                    Read grammar points from the database and review their explanations.
+                </p>
+
+                <div class="button-row" style="margin-top: 12px;">
+                    <a href="{{ url_for('dashboard') }}" class="secondary-button">
+                        Back to Dashboard
+                    </a>
+
+                    <a href="{{ url_for('notes_collection') }}" class="secondary-button">
+                        My Notes
+                    </a>
+                </div>
+            </div>
+
+            <form method="GET" action="{{ url_for('learn_grammar') }}" class="learn-filter-form">
+                <div class="learn-filter-row">
+                    <div class="form-group">
+                        <label for="keyword">Search</label>
+                        <input
+                            type="text"
+                            id="keyword"
+                            name="keyword"
+                            value="{{ keyword or '' }}"
+                            placeholder="Search grammar, reading, romaji, meaning..."
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="level">JLPT Level</label>
+                        <select id="level" name="level">
+                            <option value="all" {% if selected_level == "all" %}selected{% endif %}>
+                                All levels
+                            </option>
+                            <option value="N1" {% if selected_level == "N1" %}selected{% endif %}>
+                                N1
+                            </option>
+                            <option value="N2" {% if selected_level == "N2" %}selected{% endif %}>
+                                N2
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group learn-filter-button-group">
+                        <button type="submit" class="primary-button">
+                            Search
+                        </button>
+
+                        <a href="{{ url_for('learn_grammar') }}" class="secondary-button">
+                            Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <div class="learn-summary">
+                Showing {{ grammar_points|length }} grammar point(s).
+            </div>
+
+            {% if grammar_points %}
+                <div class="learn-grammar-list">
+                    {% for grammar in grammar_points %}
+                        <div class="learn-grammar-card">
+
+                            <div class="mastery-grammar-header">
+                                <div>
+                                    <h3 class="mastery-grammar-title">
+                                        {{ loop.index }}. {{ grammar.grammar }}
+                                    </h3>
+
+                                    <p class="mastery-grammar-subtitle">
+                                        {{ grammar.jlpt_level }}
+                                        {% if grammar.reading %}
+                                            | Reading: {{ grammar.reading }}
+                                        {% endif %}
+                                        {% if grammar.romaji %}
+                                            | Romaji: {{ grammar.romaji }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+
+                                <div class="mastery-badge-group">
+                                    <span class="jlpt-level-tag">
+                                        {{ grammar.jlpt_level }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="learn-card-section">
+                                <h4>Meaning</h4>
+                                <p>{{ grammar.meaning }}</p>
+                            </div>
+
+                            {% if grammar.formation %}
+                                <div class="learn-card-section">
+                                    <h4>Formation</h4>
+                                    <p>{{ grammar.formation }}</p>
+                                </div>
+                            {% endif %}
+
+                            {% if grammar.example_sentence or grammar.example_translation %}
+                                <div class="learn-card-section">
+                                    <h4>Example</h4>
+
+                                    {% if grammar.example_sentence %}
+                                        <p class="japanese-example">
+                                            {{ grammar.example_sentence }}
+                                        </p>
+                                    {% endif %}
+
+                                    {% if grammar.example_translation %}
+                                        <p class="example-translation">
+                                            {{ grammar.example_translation }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+
+                            <div class="learn-card-section">
+                                <h4>Explanations from Questions</h4>
+
+                                {% if grammar.explanations %}
+                                    <div class="explanation-list">
+                                        {% for explanation in grammar.explanations %}
+                                            <div class="explanation-card">
+                                                <div class="mastery-badge-group">
+                                                    <span class="difficulty-tag difficulty-{{ explanation.difficulty }}">
+                                                        {{ explanation.difficulty }}
+                                                    </span>
+
+                                                    {% if explanation.question_type %}
+                                                        <span class="note-count-tag">
+                                                            {{ explanation.question_type }}
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+
+                                                <p>
+                                                    {{ explanation.explanation }}
+                                                </p>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <p class="empty-message">
+                                        No explanations found in the questions table.
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            <div class="button-row">
+                                <a href="{{ url_for('grammar_notes', grammar_id=grammar.id) }}" class="secondary-button">
+                                    View Connected Notes
+                                </a>
+
+                                <a href="{{ url_for('new_note', keyword=grammar.grammar) }}" class="secondary-button">
+                                    Create Note
+                                </a>
+                            </div>
+
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-message">
+                    No grammar points found.
+                </p>
+            {% endif %}
+
+        </div>
+    </div>
+</body>
+</html>

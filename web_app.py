@@ -6,7 +6,7 @@ import html
 import re
 from markupsafe import Markup, escape
 
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import (
     get_all_users,
@@ -2177,6 +2177,117 @@ def render_note_markdown(text):
     return rendered_html
 
 
+def get_learn_grammar_points(level_filter="all", keyword=""):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    sql = """
+    SELECT
+        grammar_points.id,
+        grammar_points.jlpt_level,
+        grammar_points.grammar,
+        grammar_points.reading,
+        grammar_points.romaji,
+        grammar_points.meaning,
+        grammar_points.formation,
+        grammar_points.example_sentence,
+        grammar_points.example_translation,
+        grammar_points.source
+    FROM grammar_points
+    WHERE 1 = 1
+    """
+
+    params = []
+
+    if level_filter != "all":
+        sql += " AND grammar_points.jlpt_level = ?"
+        params.append(level_filter)
+
+    if keyword:
+        sql += """
+        AND (
+            grammar_points.grammar LIKE ?
+            OR grammar_points.reading LIKE ?
+            OR grammar_points.romaji LIKE ?
+            OR grammar_points.meaning LIKE ?
+            OR grammar_points.formation LIKE ?
+            OR grammar_points.example_sentence LIKE ?
+            OR grammar_points.example_translation LIKE ?
+        )
+        """
+
+        search_value = f"%{keyword}%"
+        params.extend([
+            search_value,
+            search_value,
+            search_value,
+            search_value,
+            search_value,
+            search_value,
+            search_value
+        ])
+
+    sql += """
+    ORDER BY
+        grammar_points.jlpt_level ASC,
+        grammar_points.id ASC
+    """
+
+    cur.execute(sql, params)
+    grammar_rows = cur.fetchall()
+
+    grammar_points = []
+
+    for row in grammar_rows:
+        grammar = dict(row)
+
+        cur.execute(
+            """
+            SELECT
+                id,
+                difficulty,
+                question_type,
+                explanation
+            FROM questions
+            WHERE grammar_id = ?
+            AND explanation IS NOT NULL
+            AND TRIM(explanation) != ''
+            ORDER BY
+                CASE difficulty
+                    WHEN 'easy' THEN 1
+                    WHEN 'normal' THEN 2
+                    WHEN 'hard' THEN 3
+                    ELSE 4
+                END,
+                id ASC
+            """,
+            (grammar["id"],)
+        )
+
+        explanation_rows = cur.fetchall()
+
+        explanations = []
+        seen_explanations = set()
+
+        for explanation_row in explanation_rows:
+            explanation_text = explanation_row["explanation"].strip()
+
+            if explanation_text not in seen_explanations:
+                explanations.append(dict(explanation_row))
+                seen_explanations.add(explanation_text)
+
+            if len(explanations) == 3:
+                break
+
+        grammar["explanations"] = explanations
+        grammar_points.append(grammar)
+
+    conn.close()
+
+    return grammar_points
+    
+
 app.jinja_env.filters["markdown_note"] = render_note_markdown
 
 
@@ -2824,45 +2935,87 @@ def new_note():
     if "user_id" not in session:
         return redirect(url_for("index"))
 
-    ensure_notes_tables()
-
+    keyword = request.args.get("keyword", "").strip()
     error = None
 
-    keyword = request.args.get("keyword", "").strip()
-
     if request.method == "POST":
-        action = request.form.get("action", "")
+        action = request.form.get("action", "save_note")
+        keyword = request.form.get("keyword", request.args.get("keyword", "")).strip()
 
+        # Add grammar connection to draft
         if action == "add_connection":
             grammar_id = request.form.get("grammar_id")
             relation_type = request.form.get("relation_type", "related")
+            grammar_label = request.form.get("grammar_label", "Grammar point")
 
-            if grammar_id:
-                add_draft_connection(grammar_id, relation_type, note_id=None)
+            if not grammar_id:
+                if request.headers.get("X-Requested-With") == "fetch":
+                    return jsonify({
+                        "ok": False,
+                        "message": "Grammar ID was missing."
+                    }), 400
 
-            keyword = request.form.get("keyword", "").strip()
-            return redirect(url_for("new_note", keyword=keyword))
+                return redirect(url_for(
+                    "new_note",
+                    keyword=keyword,
+                    _anchor="connect-section"
+                ))
 
-        if action == "remove_connection":
+            add_draft_connection(
+                grammar_id=grammar_id,
+                relation_type=relation_type,
+                note_id=None
+            )
+
+            if request.headers.get("X-Requested-With") == "fetch":
+                return jsonify({
+                    "ok": True,
+                    "message": f"{grammar_label} has been connected.",
+                    "grammar_id": grammar_id,
+                    "grammar_label": grammar_label,
+                    "relation_type": relation_type
+                })
+
+            return redirect(url_for(
+                "new_note",
+                keyword=keyword,
+                _anchor="connect-section"
+            ))
+
+        # Remove grammar connection from draft
+        elif action == "remove_connection":
             grammar_id = request.form.get("grammar_id")
 
             if grammar_id:
-                remove_draft_connection(grammar_id, note_id=None)
+                remove_draft_connection(
+                    grammar_id=grammar_id,
+                    note_id=None
+                )
 
-            keyword = request.form.get("keyword", "").strip()
-            return redirect(url_for("new_note", keyword=keyword))
+            return redirect(url_for(
+                "new_note",
+                keyword=keyword,
+                _anchor="connect-section"
+            ))
 
-        if action == "clear_connections":
+        # Clear all draft connections
+        elif action == "clear_connections":
             clear_draft_connections(note_id=None)
-            keyword = request.form.get("keyword", "").strip()
-            return redirect(url_for("new_note", keyword=keyword))
 
-        if action == "create_note":
+            return redirect(url_for(
+                "new_note",
+                keyword=keyword,
+                _anchor="connect-section"
+            ))
+
+        # Save new note permanently
+        else:
             title = request.form.get("title", "").strip()
+
             content = request.form.get("content", "").strip()
-            
             if not content:
                 content = request.form.get("note_content", "").strip()
+
             grammar_links = get_draft_connections(note_id=None)
 
             ok, message = create_note_with_links(
@@ -2879,39 +3032,50 @@ def new_note():
             error = message
 
     if keyword:
-        grammar_results = search_grammar_for_note_link(keyword=keyword, limit=50)
+        grammar_results = search_grammar_for_note_link(
+            keyword=keyword,
+            limit=50
+        )
     else:
         grammar_results = []
 
     connected_grammar = get_draft_connection_details(note_id=None)
 
+    connected_grammar_ids = [
+        str(grammar["grammar_id"])
+        for grammar in connected_grammar
+    ]
+
     return render_template(
         "new_note.html",
         username=session["username"],
-        grammar_results=grammar_results,
         connected_grammar=connected_grammar,
+        connected_grammar_ids=connected_grammar_ids,
+        grammar_results=grammar_results,
         keyword=keyword,
         error=error
     )
-
+    
+    
 @app.route("/notes/<int:note_id>/edit", methods=["GET", "POST"])
 def edit_note(note_id):
     if "user_id" not in session:
         return redirect(url_for("index"))
 
-    ensure_notes_tables()
-
-    note = get_note_detail(
+    note = get_note_detail_with_explanations(
         user_id=session["user_id"],
         note_id=note_id
     )
 
-    if note is None:
-        return "Note not found.", 404
+    if not note:
+        return redirect(url_for("notes_collection"))
+
+    keyword = request.args.get("keyword", "").strip()
 
     draft_key = get_note_draft_key(note_id)
 
-    # First time opening edit page: load DB connections into draft.
+    # First time opening edit page:
+    # load saved DB connections into session draft.
     if draft_key not in session:
         initial_connections = []
 
@@ -2924,41 +3088,99 @@ def edit_note(note_id):
         save_draft_connections(initial_connections, note_id=note_id)
 
     error = None
-    keyword = request.args.get("keyword", "").strip()
 
     if request.method == "POST":
-        action = request.form.get("action", "")
+        action = request.form.get("action", "save_note")
+        keyword = request.form.get("keyword", request.args.get("keyword", "")).strip()
 
+        # Add grammar connection to draft
         if action == "add_connection":
             grammar_id = request.form.get("grammar_id")
             relation_type = request.form.get("relation_type", "related")
+            grammar_label = request.form.get("grammar_label", "Grammar point")
 
-            if grammar_id:
-                add_draft_connection(grammar_id, relation_type, note_id=note_id)
+            if not grammar_id:
+                if request.headers.get("X-Requested-With") == "fetch":
+                    return jsonify({
+                        "ok": False,
+                        "message": "Grammar ID was missing."
+                    }), 400
 
-            keyword = request.form.get("keyword", "").strip()
-            return redirect(url_for("edit_note", note_id=note_id, keyword=keyword))
+                return redirect(url_for(
+                    "edit_note",
+                    note_id=note_id,
+                    keyword=keyword,
+                    _anchor="connect-section"
+                ))
 
-        if action == "remove_connection":
+            add_draft_connection(
+                grammar_id=grammar_id,
+                relation_type=relation_type,
+                note_id=note_id
+            )
+
+            if request.headers.get("X-Requested-With") == "fetch":
+                return jsonify({
+                    "ok": True,
+                    "message": f"{grammar_label} has been connected.",
+                    "grammar_id": grammar_id,
+                    "grammar_label": grammar_label,
+                    "relation_type": relation_type
+                })
+
+            return redirect(url_for(
+                "edit_note",
+                note_id=note_id,
+                keyword=keyword,
+                _anchor="connect-section"
+            ))
+
+        # Remove grammar connection from draft
+        elif action == "remove_connection":
             grammar_id = request.form.get("grammar_id")
 
             if grammar_id:
-                remove_draft_connection(grammar_id, note_id=note_id)
+                remove_draft_connection(
+                    grammar_id=grammar_id,
+                    note_id=note_id
+                )
 
-            keyword = request.form.get("keyword", "").strip()
-            return redirect(url_for("edit_note", note_id=note_id, keyword=keyword))
+            return redirect(url_for(
+                "edit_note",
+                note_id=note_id,
+                keyword=keyword,
+                _anchor="connect-section"
+            ))
 
-        if action == "reset_connections":
+        # Reset draft connections back to original saved DB state
+        elif action == "reset_connections":
             clear_draft_connections(note_id=note_id)
-            return redirect(url_for("edit_note", note_id=note_id, keyword=keyword))
 
-        if action == "save_note":
+            initial_connections = []
+
+            for grammar in note["connected_grammar"]:
+                initial_connections.append({
+                    "grammar_id": grammar["grammar_id"],
+                    "relation_type": grammar["relation_type"]
+                })
+
+            save_draft_connections(initial_connections, note_id=note_id)
+
+            return redirect(url_for(
+                "edit_note",
+                note_id=note_id,
+                keyword=keyword,
+                _anchor="connect-section"
+            ))
+
+        # Save note content + save draft grammar connections permanently
+        else:
             title = request.form.get("title", "").strip()
+
             content = request.form.get("content", "").strip()
-            
             if not content:
                 content = request.form.get("note_content", "").strip()
-            
+
             grammar_links = get_draft_connections(note_id=note_id)
 
             ok, message = update_note_with_links(
@@ -2976,27 +3198,30 @@ def edit_note(note_id):
             error = message
 
     if keyword:
-        grammar_results = search_grammar_for_note_link(keyword=keyword, limit=50)
+        grammar_results = search_grammar_for_note_link(
+            keyword=keyword,
+            limit=50
+        )
     else:
         grammar_results = []
 
     connected_grammar = get_draft_connection_details(note_id=note_id)
 
+    connected_grammar_ids = [
+        str(grammar["grammar_id"])
+        for grammar in connected_grammar
+    ]
+
     return render_template(
         "edit_note.html",
         username=session["username"],
         note=note,
-        grammar_results=grammar_results,
         connected_grammar=connected_grammar,
+        connected_grammar_ids=connected_grammar_ids,
+        grammar_results=grammar_results,
         keyword=keyword,
         error=error
     )
-
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("index"))
 
 
 @app.route("/notes/<int:note_id>/delete", methods=["GET", "POST"])
@@ -3056,6 +3281,55 @@ def note_detail(note_id):
         username=session["username"],
         note=note
     )
+
+
+@app.route("/notes/<int:note_id>/edit/cancel")
+def cancel_edit_note(note_id):
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    clear_draft_connections(note_id=note_id)
+
+    return redirect(url_for("note_detail", note_id=note_id))
+
+
+@app.route("/notes/new/cancel")
+def cancel_new_note():
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    clear_draft_connections(note_id=None)
+
+    return redirect(url_for("notes_collection"))
+
+
+@app.route("/learn")
+def learn_grammar():
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    level_filter = request.args.get("level", "all")
+    keyword = request.args.get("keyword", "").strip()
+
+    grammar_points = get_learn_grammar_points(
+        level_filter=level_filter,
+        keyword=keyword
+    )
+
+    return render_template(
+        "learn.html",
+        username=session["username"],
+        grammar_points=grammar_points,
+        selected_level=level_filter,
+        keyword=keyword
+    )
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("index"))
+
 
 
 ensure_user_account_columns()
