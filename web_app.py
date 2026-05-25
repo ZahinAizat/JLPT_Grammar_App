@@ -2,7 +2,7 @@ import os
 import random
 import sqlite3
 import html
-import markdown
+#import markdown
 import bleach
 import re
 from markupsafe import Markup, escape
