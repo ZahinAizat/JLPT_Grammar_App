@@ -1331,3 +1331,28 @@ tables for Notes
     padding: 2px 5px;
     border-radius: 5px;
 }
+
+/*=======================
+notes adjustment
+=========================*/
+.connected-note-summary {
+    padding: 16px;
+}
+
+.connected-note-summary h3 {
+    margin-bottom: 8px;
+}
+
+.connected-note-summary a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.connected-note-summary a:hover {
+    text-decoration: underline;
+}
+
+.note-relation {
+    color: #666;
+    font-size: 0.95rem;
+}

@@ -39,20 +39,20 @@
             <option value="personal memory" {% if selected_relation == "personal memory" %}selected{% endif %}>Personal memory</option>
             <option value="other" {% if selected_relation == "other" %}selected{% endif %}>Other</option>
         </select>
-		
-		<label for="jlpt_level"><strong>JLPT Level</strong></label>
-		<select name="jlpt_level" id="jlpt_level">
-			<option value="all" {% if selected_level == "all" %}selected{% endif %}>All levels</option>
-			<option value="N1" {% if selected_level == "N1" %}selected{% endif %}>N1 only</option>
-			<option value="N2" {% if selected_level == "N2" %}selected{% endif %}>N2 only</option>
-		</select>
 
-		<label for="connection_filter"><strong>Connection count</strong></label>
-		<select name="connection_filter" id="connection_filter">
-			<option value="all" {% if selected_connection_filter == "all" %}selected{% endif %}>All notes</option>
-			<option value="single" {% if selected_connection_filter == "single" %}selected{% endif %}>Single grammar only</option>
-			<option value="multiple" {% if selected_connection_filter == "multiple" %}selected{% endif %}>Multiple grammar points only</option>
-		</select>
+        <label for="jlpt_level"><strong>JLPT Level</strong></label>
+        <select name="jlpt_level" id="jlpt_level">
+            <option value="all" {% if selected_level == "all" %}selected{% endif %}>All levels</option>
+            <option value="N1" {% if selected_level == "N1" %}selected{% endif %}>N1 only</option>
+            <option value="N2" {% if selected_level == "N2" %}selected{% endif %}>N2 only</option>
+        </select>
+
+        <label for="connection_filter"><strong>Connection count</strong></label>
+        <select name="connection_filter" id="connection_filter">
+            <option value="all" {% if selected_connection_filter == "all" %}selected{% endif %}>All notes</option>
+            <option value="single" {% if selected_connection_filter == "single" %}selected{% endif %}>Single grammar only</option>
+            <option value="multiple" {% if selected_connection_filter == "multiple" %}selected{% endif %}>Multiple grammar points only</option>
+        </select>
 
         <label for="sort_by"><strong>Sort by</strong></label>
         <select name="sort_by" id="sort_by">
@@ -62,8 +62,8 @@
             <option value="created_asc" {% if sort_by == "created_asc" %}selected{% endif %}>Oldest created first</option>
             <option value="title_asc" {% if sort_by == "title_asc" %}selected{% endif %}>Title A-Z</option>
             <option value="title_desc" {% if sort_by == "title_desc" %}selected{% endif %}>Title Z-A</option>
-			<option value="connection_count_desc" {% if sort_by == "connection_count_desc" %}selected{% endif %}>Most connected grammar first</option>
-			<option value="connection_count_asc" {% if sort_by == "connection_count_asc" %}selected{% endif %}>Fewest connected grammar first</option>
+            <option value="connection_count_desc" {% if sort_by == "connection_count_desc" %}selected{% endif %}>Most connected grammar first</option>
+            <option value="connection_count_asc" {% if sort_by == "connection_count_asc" %}selected{% endif %}>Fewest connected grammar first</option>
         </select>
 
         <button type="submit">Apply Filter</button>
@@ -98,7 +98,11 @@
         </div>
 
         {% for note in notes %}
-            <div class="mastery-grammar-card slide-card">
+            <div
+                class="mastery-grammar-card slide-card"
+                id="note-{{ note.note_id }}"
+                data-note-id="{{ note.note_id }}"
+            >
 
                 <div class="mastery-grammar-header">
                     <div>
@@ -114,7 +118,10 @@
 
                 <div class="mastery-grammar-section">
                     <h5>Note Content</h5>
-                    <div class="note-content">{{ note.content|safe }}</div>
+
+                    <div class="note-content markdown-body">
+                        {{ note.content|safe_note_html|safe }}
+                    </div>
                 </div>
 
                 <div class="mastery-grammar-divider"></div>
@@ -134,9 +141,10 @@
                                     {% endif %}
 
                                     <span class="jlpt-tag">{{ grammar.jlpt_level }}</span>
+
                                     <span class="relation-tag relation-{{ grammar.relation_type|replace(' ', '-') }}">
-    {{ grammar.relation_type }}
-</span>
+                                        {{ grammar.relation_type }}
+                                    </span>
                                 </p>
 
                                 <p>{{ grammar.meaning }}</p>
@@ -231,18 +239,18 @@
                 </div>
 
                 <div class="button-row">
-					<a class="small-button" href="{{ url_for('note_detail', note_id=note.note_id) }}">
-						Open Note
-					</a>
+                    <a class="small-button" href="{{ url_for('note_detail', note_id=note.note_id) }}">
+                        Open Note
+                    </a>
 
-					<a class="small-button" href="{{ url_for('edit_note', note_id=note.note_id) }}">
-						Edit Note
-					</a>
+                    <a class="small-button" href="{{ url_for('edit_note', note_id=note.note_id) }}">
+                        Edit Note
+                    </a>
 
-					<a class="small-button danger-link" href="{{ url_for('delete_note', note_id=note.note_id) }}">
-						Delete Note
-					</a>
-				</div>
+                    <a class="small-button danger-link" href="{{ url_for('delete_note', note_id=note.note_id) }}">
+                        Delete Note
+                    </a>
+                </div>
 
             </div>
         {% endfor %}
@@ -286,10 +294,57 @@
 
 <script src="{{ url_for('static', filename='slide_cards.js') }}"></script>
 
+<script>
+    function openNoteFromHash() {
+        const hash = window.location.hash;
+
+        if (!hash || !hash.startsWith("#note-")) {
+            return;
+        }
+
+        const target = document.querySelector(hash);
+
+        if (!target) {
+            return;
+        }
+
+        const cards = Array.from(document.querySelectorAll(".slide-card"));
+        const targetIndex = cards.indexOf(target);
+
+        if (targetIndex === -1) {
+            return;
+        }
+
+        if (typeof jumpToSlide === "function") {
+            jumpToSlide(targetIndex, {
+                preventDefault: function () {}
+            });
+        } else {
+            cards.forEach(function (card, index) {
+                if (index === targetIndex) {
+                    card.style.display = "block";
+                } else {
+                    card.style.display = "none";
+                }
+            });
+
+            const slideCounter = document.getElementById("slide-counter");
+
+            if (slideCounter) {
+                slideCounter.textContent = (targetIndex + 1) + " / " + cards.length;
+            }
+        }
+
+        setTimeout(function () {
+            target.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+        }, 100);
+    }
+
+    window.addEventListener("load", openNoteFromHash);
+    window.addEventListener("hashchange", openNoteFromHash);
+</script>
+
 {% endblock %}
-
-
-
-
-
-
