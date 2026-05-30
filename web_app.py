@@ -1700,10 +1700,14 @@ def get_all_notes_for_user(
             like_keyword
         ])
 
+    # If user filters by relation type, standalone notes should not appear,
+    # because they do not have a relation.
     if relation_type != "all":
         where_sql += " AND grammar_note_links.relation_type = ?"
         params.append(relation_type)
 
+    # If user filters by JLPT level, standalone notes should not appear,
+    # because they do not have a connected grammar level.
     if jlpt_level != "all":
         where_sql += " AND grammar_points.jlpt_level = ?"
         params.append(jlpt_level)
@@ -1714,7 +1718,9 @@ def get_all_notes_for_user(
         "created_desc": "grammar_notes.created_at DESC",
         "created_asc": "grammar_notes.created_at ASC",
         "title_asc": "grammar_notes.title ASC",
-        "title_desc": "grammar_notes.title DESC"
+        "title_desc": "grammar_notes.title DESC",
+        "connection_count_desc": "grammar_notes.updated_at DESC",
+        "connection_count_asc": "grammar_notes.updated_at DESC"
     }
 
     order_sql = sort_options.get(sort_by, "grammar_notes.updated_at DESC")
@@ -1740,10 +1746,10 @@ def get_all_notes_for_user(
 
     FROM grammar_notes
 
-    JOIN grammar_note_links
+    LEFT JOIN grammar_note_links
         ON grammar_notes.id = grammar_note_links.note_id
 
-    JOIN grammar_points
+    LEFT JOIN grammar_points
         ON grammar_note_links.grammar_id = grammar_points.id
 
     {where_sql}
@@ -1773,18 +1779,23 @@ def get_all_notes_for_user(
 
         grammar_id = row["grammar_id"]
 
-        notes_dict[note_id]["connected_grammar"].append({
-            "grammar_id": grammar_id,
-            "jlpt_level": row["jlpt_level"],
-            "grammar": row["grammar"],
-            "reading": row["reading"],
-            "meaning": row["meaning"],
-            "formation": row["formation"],
-            "example_sentence": row["example_sentence"],
-            "example_translation": row["example_translation"],
-            "relation_type": row["relation_type"],
-            "question_explanations": get_question_explanations_for_grammar(grammar_id)
-        })
+        # IMPORTANT:
+        # Standalone notes have no connected grammar.
+        # With LEFT JOIN, grammar_id will be None.
+        # Do not append fake grammar data for those notes.
+        if grammar_id is not None:
+            notes_dict[note_id]["connected_grammar"].append({
+                "grammar_id": grammar_id,
+                "jlpt_level": row["jlpt_level"],
+                "grammar": row["grammar"],
+                "reading": row["reading"],
+                "meaning": row["meaning"],
+                "formation": row["formation"],
+                "example_sentence": row["example_sentence"],
+                "example_translation": row["example_translation"],
+                "relation_type": row["relation_type"],
+                "question_explanations": get_question_explanations_for_grammar(grammar_id)
+            })
 
     notes = list(notes_dict.values())
 
@@ -1803,6 +1814,12 @@ def get_all_notes_for_user(
             if note["connection_count"] == 1
         ]
 
+    elif connection_filter == "standalone":
+        notes = [
+            note for note in notes
+            if note["connection_count"] == 0
+        ]
+
     if sort_by == "connection_count_desc":
         notes.sort(key=lambda note: note["connection_count"], reverse=True)
 
@@ -1812,62 +1829,100 @@ def get_all_notes_for_user(
     return notes
 
 
-def create_note_with_links(user_id, title, content, grammar_links):
-    """
-    grammar_links should be a list of dictionaries:
-    [
-        {"grammar_id": 1, "relation_type": "related"},
-        {"grammar_id": 2, "relation_type": "opposite"}
-    ]
-    """
-
+def create_note_with_links(user_id, title, content, grammar_links=None):
     ensure_notes_tables()
 
-    title = title.strip()
-    content = content.strip()
+    title = (title or "").strip()
+    content = (content or "").strip()
 
     if not title:
-        return False, "Note title cannot be empty."
+        return False, "Note title is required."
 
     if not content:
-        return False, "Note content cannot be empty."
+        return False, "Note content is required."
 
-    if not grammar_links:
-        return False, "Please connect the note to at least one grammar point."
+    # IMPORTANT:
+    # Allow notes with no connected grammar points.
+    if grammar_links is None:
+        grammar_links = []
 
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    cur.execute("""
-    INSERT INTO grammar_notes (
-        user_id,
-        title,
-        content,
-        created_at,
-        updated_at
-    )
-    VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    """, (user_id, title, content))
-
-    note_id = cur.lastrowid
+    cleaned_links = []
+    seen_grammar_ids = set()
 
     for link in grammar_links:
-        grammar_id = link["grammar_id"]
-        relation_type = link.get("relation_type", "related")
+        try:
+            grammar_id = int(link.get("grammar_id"))
+        except (TypeError, ValueError, AttributeError):
+            continue
 
+        if grammar_id in seen_grammar_ids:
+            continue
+
+        relation_type = (link.get("relation_type") or "related").strip()
+
+        if not relation_type:
+            relation_type = "related"
+
+        cleaned_links.append({
+            "grammar_id": grammar_id,
+            "relation_type": relation_type
+        })
+
+        seen_grammar_ids.add(grammar_id)
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    try:
         cur.execute("""
-        INSERT INTO grammar_note_links (
-            note_id,
-            grammar_id,
-            relation_type
-        )
-        VALUES (?, ?, ?)
-        """, (note_id, grammar_id, relation_type))
+            INSERT INTO grammar_notes (
+                user_id,
+                title,
+                content,
+                created_at,
+                updated_at
+            )
+            VALUES (
+                ?,
+                ?,
+                ?,
+                datetime('now'),
+                datetime('now')
+            )
+        """, (
+            user_id,
+            title,
+            content
+        ))
 
-    conn.commit()
-    conn.close()
+        note_id = cur.lastrowid
 
-    return True, "Note created successfully."
+        # Only insert links if the note actually has connected grammar points.
+        # This is the part that allows "standalone notes".
+        for link in cleaned_links:
+            cur.execute("""
+                INSERT INTO grammar_note_links (
+                    note_id,
+                    grammar_id,
+                    relation_type
+                )
+                VALUES (?, ?, ?)
+            """, (
+                note_id,
+                link["grammar_id"],
+                link["relation_type"]
+            ))
+
+        conn.commit()
+        return True, "Note saved successfully."
+
+    except Exception as error:
+        conn.rollback()
+        return False, f"Could not save note: {error}"
+
+    finally:
+        conn.close()
 
 
 def search_grammar_for_note_link(keyword="", limit=30):
@@ -2940,32 +2995,188 @@ def grammar_notes(grammar_id):
     if grammar is None:
         return "Grammar point not found.", 404
 
+    # Use a negative draft id so this grammar-page draft does not conflict
+    # with /notes/new or /notes/<id>/edit.
+    draft_note_id = -grammar_id
+    draft_key = get_note_draft_key(draft_note_id)
+
+    keyword = request.args.get("keyword", "").strip()
     error = None
     success = None
 
-    if request.method == "POST":
-        title = request.form.get("title", "").strip()
-        content = request.form.get("content", "").strip()
-        relation_type = request.form.get("relation_type", "related").strip()
-
-        grammar_links = [
-            {
-                "grammar_id": grammar_id,
-                "relation_type": relation_type
-            }
-        ]
-
-        ok, message = create_note_with_links(
-            user_id=session["user_id"],
-            title=title,
-            content=content,
-            grammar_links=grammar_links
+    # First time opening this grammar note page:
+    # automatically connect the current grammar point.
+    if draft_key not in session:
+        save_draft_connections(
+            [
+                {
+                    "grammar_id": grammar_id,
+                    "relation_type": "related"
+                }
+            ],
+            note_id=draft_note_id
+        )
+    else:
+        # Safety: make sure the current grammar point is always connected.
+        current_connections = get_draft_connections(note_id=draft_note_id)
+        has_current_grammar = any(
+            int(connection["grammar_id"]) == int(grammar_id)
+            for connection in current_connections
         )
 
-        if ok:
-            success = message
+        if not has_current_grammar:
+            add_draft_connection(
+                grammar_id=grammar_id,
+                relation_type="related",
+                note_id=draft_note_id
+            )
+
+    if request.method == "POST":
+        action = request.form.get("action", "save_note")
+        keyword = request.form.get("keyword", request.args.get("keyword", "")).strip()
+
+        # Add another grammar point to the new note draft.
+        if action == "add_connection":
+            target_grammar_id = request.form.get("grammar_id")
+            relation_type = request.form.get("relation_type", "related")
+            grammar_label = request.form.get("grammar_label", "Grammar point")
+
+            if not target_grammar_id:
+                if request.headers.get("X-Requested-With") == "fetch":
+                    return jsonify({
+                        "ok": False,
+                        "message": "Grammar ID was missing."
+                    }), 400
+
+                return redirect(url_for(
+                    "grammar_notes",
+                    grammar_id=grammar_id,
+                    keyword=keyword,
+                    _anchor="connect-section"
+                ))
+
+            add_draft_connection(
+                grammar_id=target_grammar_id,
+                relation_type=relation_type,
+                note_id=draft_note_id
+            )
+
+            if request.headers.get("X-Requested-With") == "fetch":
+                return jsonify({
+                    "ok": True,
+                    "message": f"{grammar_label} has been connected.",
+                    "grammar_id": target_grammar_id,
+                    "grammar_label": grammar_label,
+                    "relation_type": relation_type
+                })
+
+            return redirect(url_for(
+                "grammar_notes",
+                grammar_id=grammar_id,
+                keyword=keyword,
+                _anchor="connect-section"
+            ))
+
+        # Remove another grammar point from the new note draft.
+        elif action == "remove_connection":
+            target_grammar_id = request.form.get("grammar_id")
+
+            # Do not allow removing the current grammar page's grammar point.
+            if target_grammar_id and int(target_grammar_id) != int(grammar_id):
+                remove_draft_connection(
+                    grammar_id=target_grammar_id,
+                    note_id=draft_note_id
+                )
+
+            return redirect(url_for(
+                "grammar_notes",
+                grammar_id=grammar_id,
+                keyword=keyword,
+                _anchor="connect-section"
+            ))
+
+        # Reset draft connections back to only the current grammar point.
+        elif action == "clear_connections":
+            clear_draft_connections(note_id=draft_note_id)
+
+            save_draft_connections(
+                [
+                    {
+                        "grammar_id": grammar_id,
+                        "relation_type": "related"
+                    }
+                ],
+                note_id=draft_note_id
+            )
+
+            return redirect(url_for(
+                "grammar_notes",
+                grammar_id=grammar_id,
+                keyword=keyword,
+                _anchor="connect-section"
+            ))
+
+        # Save the new note permanently.
         else:
+            title = request.form.get("title", "").strip()
+
+            content = request.form.get("content", "").strip()
+            if not content:
+                content = request.form.get("note_content", "").strip()
+
+            current_relation_type = request.form.get("current_relation_type", "related").strip()
+
+            grammar_links = get_draft_connections(note_id=draft_note_id)
+
+            cleaned_links = []
+            has_current_grammar = False
+
+            for link in grammar_links:
+                link_grammar_id = int(link["grammar_id"])
+                link_relation_type = link.get("relation_type", "related")
+
+                if link_grammar_id == int(grammar_id):
+                    link_relation_type = current_relation_type
+                    has_current_grammar = True
+
+                cleaned_links.append({
+                    "grammar_id": link_grammar_id,
+                    "relation_type": link_relation_type
+                })
+
+            if not has_current_grammar:
+                cleaned_links.insert(0, {
+                    "grammar_id": grammar_id,
+                    "relation_type": current_relation_type
+                })
+
+            ok, message = create_note_with_links(
+                user_id=session["user_id"],
+                title=title,
+                content=content,
+                grammar_links=cleaned_links
+            )
+
+            if ok:
+                clear_draft_connections(note_id=draft_note_id)
+                return redirect(url_for("grammar_notes", grammar_id=grammar_id))
+
             error = message
+
+    if keyword:
+        grammar_results = search_grammar_for_note_link(
+            keyword=keyword,
+            limit=50
+        )
+    else:
+        grammar_results = []
+
+    connected_grammar = get_draft_connection_details(note_id=draft_note_id)
+
+    connected_grammar_ids = [
+        str(item["grammar_id"])
+        for item in connected_grammar
+    ]
 
     notes = get_notes_for_grammar(
         user_id=session["user_id"],
@@ -2980,10 +3191,13 @@ def grammar_notes(grammar_id):
         grammar=grammar,
         notes=notes,
         question_explanations=question_explanations,
+        connected_grammar=connected_grammar,
+        connected_grammar_ids=connected_grammar_ids,
+        grammar_results=grammar_results,
+        keyword=keyword,
         error=error,
         success=success
     )
-
 
 @app.route("/notes")
 def notes_collection():

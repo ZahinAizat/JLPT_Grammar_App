@@ -1356,3 +1356,35 @@ notes adjustment
     color: #666;
     font-size: 0.95rem;
 }
+
+/* Grammar notes page button text */
+.grammar-notes-page .small-button,
+.grammar-notes-page .small-button:visited {
+    color: white;
+}
+
+.grammar-notes-page .small-button:hover {
+    color: white;
+}
+
+/* Grammar notes side-by-side layout */
+.grammar-notes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .grammar-notes-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.connected-notes-search-box {
+    margin-bottom: 14px;
+}
+
+.connected-notes-search-box input {
+    width: 100%;
+}

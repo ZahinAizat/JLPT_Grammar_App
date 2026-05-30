@@ -2,234 +2,560 @@
 
 {% block content %}
 
-<h2>Grammar Notes</h2>
+<div class="grammar-notes-page">
 
-<p>Current user: <strong>{{ username }}</strong></p>
+    <h2>Grammar Notes</h2>
 
-<div class="mastery-grammar-card">
+    <p>Current user: <strong>{{ username }}</strong></p>
 
-    <div class="mastery-grammar-header">
-        <div>
-            <h4 class="mastery-grammar-title">
-                {{ grammar.grammar }}
-            </h4>
+    <div class="mastery-grammar-card">
 
-            {% if grammar.reading %}
-                <p class="mastery-grammar-subtitle">{{ grammar.reading }}</p>
+        <div class="mastery-grammar-header">
+            <div>
+                <h4 class="mastery-grammar-title">
+                    {{ grammar.grammar }}
+                </h4>
+
+                {% if grammar.reading %}
+                    <p class="mastery-grammar-subtitle">{{ grammar.reading }}</p>
+                {% endif %}
+            </div>
+
+            <div class="mastery-badge-group">
+                <span class="jlpt-tag">{{ grammar.jlpt_level }}</span>
+            </div>
+        </div>
+
+        <div class="mastery-grammar-section">
+            <h5>Grammar Details</h5>
+
+            <p><strong>Meaning:</strong> {{ grammar.meaning }}</p>
+
+            {% if grammar.formation %}
+                <p><strong>Formation:</strong> {{ grammar.formation }}</p>
+            {% endif %}
+
+            {% if grammar.example_sentence %}
+                <p><strong>Example sentence:</strong> {{ grammar.example_sentence }}</p>
+            {% endif %}
+
+            {% if grammar.example_translation %}
+                <p><strong>Example translation:</strong> {{ grammar.example_translation }}</p>
             {% endif %}
         </div>
 
-        <div class="mastery-badge-group">
-            <span class="jlpt-tag">{{ grammar.jlpt_level }}</span>
+    </div>
+
+    <div class="card">
+        <h3>Question Explanations</h3>
+
+        <p class="section-description">
+            These explanations come from quiz questions connected to this grammar point.
+        </p>
+
+        {% if question_explanations %}
+            {% for explanation in question_explanations %}
+                <div class="mastery-grammar-card">
+
+                    <div class="mastery-grammar-header">
+                        <div>
+                            <h4 class="mastery-grammar-title">
+                                Explanation {{ loop.index }}
+                            </h4>
+                        </div>
+
+                        {% if explanation.difficulty %}
+                            <div class="mastery-badge-group">
+                                <span class="jlpt-tag">{{ explanation.difficulty }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mastery-grammar-section">
+                        {% if explanation.question_text %}
+                            <p><strong>Question:</strong> {{ explanation.question_text }}</p>
+                        {% endif %}
+
+                        {% if explanation.explanation %}
+                            <p><strong>Explanation:</strong> {{ explanation.explanation }}</p>
+                        {% else %}
+                            <p>No explanation saved for this question.</p>
+                        {% endif %}
+                    </div>
+
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No question explanations found for this grammar point.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>Add New Note</h3>
+
+        <p class="section-description">
+            Add your own note for this grammar point. You can also connect this new note
+            to other grammar points before saving.
+        </p>
+
+        <div id="note-toast" class="note-toast" style="display: none;"></div>
+
+        {% if error %}
+            <p class="error-message">{{ error }}</p>
+        {% endif %}
+
+        {% if success %}
+            <p class="success-message">{{ success }}</p>
+        {% endif %}
+
+        <form
+            action="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}"
+            method="POST"
+            class="setup-form"
+            id="note-form"
+        >
+            <input type="hidden" name="action" value="save_note">
+
+            <label for="title"><strong>Note title</strong></label>
+            <input
+                type="text"
+                name="title"
+                id="title"
+                placeholder="Example: Difference from ごと"
+                required
+            >
+
+            <label for="current_relation_type"><strong>Relation to this grammar</strong></label>
+            <select name="current_relation_type" id="current_relation_type">
+                <option value="related">Related</option>
+                <option value="similar">Similar</option>
+                <option value="opposite">Opposite</option>
+                <option value="confusing">Confusing</option>
+                <option value="example">Example</option>
+                <option value="personal memory">Personal memory</option>
+                <option value="other">Other</option>
+            </select>
+
+            <label for="note-editor"><strong>Note content</strong></label>
+
+            <input type="hidden" name="content" id="note-content-input">
+            <input type="hidden" name="note_content" id="note-content-input-alt">
+
+            <textarea id="note-editor" class="tinymce-note-editor"></textarea>
+
+            <button type="submit">Save Note</button>
+        </form>
+
+        <div class="mastery-grammar-divider"></div>
+
+        <div class="mastery-grammar-section" id="connect-section">
+            <h4>Grammar Points Connected to This New Note</h4>
+
+            <p class="section-description">
+                The current grammar point is automatically connected. You can add more grammar points below.
+            </p>
+
+            <div class="connected-grammar-list" id="connected-grammar-list">
+                {% if connected_grammar %}
+                    {% for item in connected_grammar %}
+                        <div class="connected-grammar-card" data-grammar-id="{{ item.grammar_id }}">
+                            <div>
+                                <h4 class="mastery-grammar-title">
+                                    {{ item.grammar }}
+                                </h4>
+
+                                <p class="mastery-grammar-subtitle">
+                                    {{ item.jlpt_level }} | {{ item.meaning }}
+                                </p>
+
+                                {% if item.reading %}
+                                    <p class="mastery-grammar-subtitle">
+                                        Reading: {{ item.reading }}
+                                    </p>
+                                {% endif %}
+
+                                {% if item.grammar_id == grammar.grammar_id %}
+                                    <p class="mastery-grammar-subtitle">
+                                        Current grammar page. This connection is required.
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            <div class="mastery-badge-group">
+                                <span class="relation-tag relation-{{ item.relation_type|replace(' ', '-') }}">
+                                    {{ item.relation_type }}
+                                </span>
+
+                                {% if item.grammar_id != grammar.grammar_id %}
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}#connect-section"
+                                    >
+                                        <input type="hidden" name="action" value="remove_connection">
+                                        <input type="hidden" name="grammar_id" value="{{ item.grammar_id }}">
+                                        <input type="hidden" name="keyword" value="{{ keyword or '' }}">
+
+                                        <button type="submit" class="danger-small-button">
+                                            Remove
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-message" id="connected-empty-message">
+                        No grammar points connected yet.
+                    </p>
+                {% endif %}
+            </div>
+
+            <form
+                method="POST"
+                action="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}#connect-section"
+                style="margin-top: 12px;"
+            >
+                <input type="hidden" name="action" value="clear_connections">
+                <input type="hidden" name="keyword" value="{{ keyword or '' }}">
+
+                <button type="submit" class="secondary-button">
+                    Reset to Current Grammar Only
+                </button>
+            </form>
+        </div>
+
+        <div class="mastery-grammar-divider"></div>
+
+        <div class="mastery-grammar-section">
+            <h4>Search Grammar to Connect</h4>
+
+            <form
+                method="GET"
+                action="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}#connect-section"
+            >
+                <div class="search-row">
+                    <input
+                        type="text"
+                        name="keyword"
+                        value="{{ keyword or '' }}"
+                        placeholder="Search grammar, reading, romaji, meaning..."
+                    >
+
+                    <button type="submit" class="secondary-button">
+                        Search
+                    </button>
+                </div>
+            </form>
+
+            {% if grammar_results %}
+                <div class="grammar-search-results">
+                    {% for result in grammar_results %}
+                        {% set result_grammar_id = result.grammar_id|default(result.id, true) %}
+
+                        <div class="grammar-result-card" data-grammar-id="{{ result_grammar_id }}">
+                            <div>
+                                <h4 class="mastery-grammar-title">
+                                    {{ result.grammar }}
+                                </h4>
+
+                                <p class="mastery-grammar-subtitle">
+                                    {{ result.jlpt_level }} | {{ result.meaning }}
+                                </p>
+
+                                {% if result.reading %}
+                                    <p class="mastery-grammar-subtitle">
+                                        Reading: {{ result.reading }}
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            {% if result_grammar_id|string in connected_grammar_ids %}
+                                <div class="mastery-badge-group">
+                                    <span class="note-count-tag already-connected-tag">
+                                        Already connected
+                                    </span>
+                                </div>
+                            {% else %}
+                                <form
+                                    method="POST"
+                                    action="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}"
+                                    class="connect-grammar-form"
+                                >
+                                    <input type="hidden" name="action" value="add_connection">
+                                    <input type="hidden" name="grammar_id" value="{{ result_grammar_id }}">
+                                    <input type="hidden" name="grammar_label" value="{{ result.grammar }}">
+                                    <input type="hidden" name="keyword" value="{{ keyword or '' }}">
+
+                                    <label class="small-label" for="relation_type_{{ result_grammar_id }}">
+                                        Relation
+                                    </label>
+
+                                    <select name="relation_type" id="relation_type_{{ result_grammar_id }}">
+                                        <option value="related">related</option>
+                                        <option value="similar">similar</option>
+                                        <option value="confusing">confusing</option>
+                                        <option value="opposite">opposite</option>
+                                        <option value="example">example</option>
+                                        <option value="personal memory">personal memory</option>
+                                        <option value="other">other</option>
+                                    </select>
+
+                                    <button type="submit" class="small-button">
+                                        Connect
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% elif keyword %}
+                <p class="empty-message">
+                    No grammar found for "{{ keyword }}".
+                </p>
+            {% else %}
+                <p class="empty-message">
+                    Search for a grammar point to connect.
+                </p>
+            {% endif %}
         </div>
     </div>
 
-    <div class="mastery-grammar-section">
-        <h5>Grammar Details</h5>
+    <div class="card">
+        <h3>Notes Already Connected to This Grammar</h3>
 
-        <p><strong>Meaning:</strong> {{ grammar.meaning }}</p>
+        {% if notes %}
+            {% for note in notes %}
+                <div class="mastery-grammar-card connected-note-summary">
 
-        {% if grammar.formation %}
-            <p><strong>Formation:</strong> {{ grammar.formation }}</p>
+                    <div class="mastery-grammar-header">
+                        <div>
+                            <h4 class="mastery-grammar-title">
+                                {{ loop.index }}. {{ note.title }}
+                            </h4>
+
+                            <p class="mastery-grammar-subtitle">
+                                Relation: {{ note.relation_type }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mastery-grammar-section">
+                        <div class="button-row">
+                            <a class="small-button" href="{{ url_for('note_detail', note_id=note.note_id) }}">
+                                Open Note
+                            </a>
+
+                            <a class="small-button" href="{{ url_for('edit_note', note_id=note.note_id) }}">
+                                Edit Note
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="mastery-grammar-divider"></div>
+
+                    <div class="mastery-grammar-section">
+                        <p><strong>Created:</strong> {{ note.created_at }}</p>
+                        <p><strong>Updated:</strong> {{ note.updated_at }}</p>
+                    </div>
+
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No notes connected to this grammar point yet.</p>
         {% endif %}
+    </div>
 
-        {% if grammar.example_sentence %}
-            <p><strong>Example sentence:</strong> {{ grammar.example_sentence }}</p>
-        {% endif %}
-
-        {% if grammar.example_translation %}
-            <p><strong>Example translation:</strong> {{ grammar.example_translation }}</p>
-        {% endif %}
+    <div class="menu">
+        <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
     </div>
 
 </div>
 
-<div class="card">
-    <h3>Question Explanations</h3>
-
-    <p class="section-description">
-        These explanations come from quiz questions connected to this grammar point.
-    </p>
-
-    {% if question_explanations %}
-        {% for explanation in question_explanations %}
-            <div class="mastery-grammar-card">
-
-                <div class="mastery-grammar-header">
-                    <div>
-                        <h4 class="mastery-grammar-title">
-                            Explanation {{ loop.index }}
-                        </h4>
-                    </div>
-
-                    {% if explanation.difficulty %}
-                        <div class="mastery-badge-group">
-                            <span class="jlpt-tag">{{ explanation.difficulty }}</span>
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="mastery-grammar-section">
-                    {% if explanation.question_text %}
-                        <p><strong>Question:</strong> {{ explanation.question_text }}</p>
-                    {% endif %}
-
-                    {% if explanation.explanation %}
-                        <p><strong>Explanation:</strong> {{ explanation.explanation }}</p>
-                    {% else %}
-                        <p>No explanation saved for this question.</p>
-                    {% endif %}
-                </div>
-
-            </div>
-        {% endfor %}
-    {% else %}
-        <p>No question explanations found for this grammar point.</p>
-    {% endif %}
-</div>
-
-<div class="card">
-    <h3>Add New Note</h3>
-
-    <p class="section-description">
-        Add your own note for this grammar point. Later, you will be able to connect one note
-        to multiple grammar points.
-    </p>
-
-    {% if error %}
-        <p class="error-message">{{ error }}</p>
-    {% endif %}
-
-    {% if success %}
-        <p class="success-message">{{ success }}</p>
-    {% endif %}
-
-    <form action="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}" method="POST" class="setup-form">
-
-        <label for="title"><strong>Note title</strong></label>
-        <input
-            type="text"
-            name="title"
-            id="title"
-            placeholder="Example: Difference from ごと"
-            required
-        >
-
-        <label for="relation_type"><strong>Relation type</strong></label>
-        <select name="relation_type" id="relation_type">
-            <option value="related">Related</option>
-            <option value="similar">Similar</option>
-            <option value="opposite">Opposite</option>
-            <option value="confusing">Confusing</option>
-            <option value="example">Example</option>
-            <option value="personal memory">Personal memory</option>
-            <option value="other">Other</option>
-        </select>
-
-        <label for="content"><strong>Note content</strong></label>
-        <textarea
-            name="content"
-            id="content"
-            rows="6"
-            placeholder="Write your note here..."
-            required
-        ></textarea>
-
-        <button type="submit">Save Note</button>
-    </form>
-</div>
-
-<div class="card">
-    <h3>Notes Connected to This Grammar</h3>
-
-    {% if notes %}
-        {% for note in notes %}
-            <div class="mastery-grammar-card">
-
-                <div class="mastery-grammar-header">
-                    <div>
-                        <h4 class="mastery-grammar-title">
-                            {{ loop.index }}. {{ note.title }}
-                        </h4>
-
-                        <p class="mastery-grammar-subtitle">
-                            Relation: {{ note.relation_type }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="mastery-grammar-section">
-                    <div class="button-row">
-    <a class="small-button" href="{{ url_for('notes_collection') }}#note-{{ note.note_id }}">
-        Open in Note Collection
-    </a>
-
-    <a class="small-button" href="{{ url_for('note_detail', note_id=note.note_id) }}">
-        Open Note Detail
-    </a>
-
-    <a class="small-button" href="{{ url_for('edit_note', note_id=note.note_id) }}">
-        Edit Note
-    </a>
-</div>
-                </div>
-
-                <div class="mastery-grammar-divider"></div>
-
-                <div class="mastery-grammar-section">
-                    <p><strong>Created:</strong> {{ note.created_at }}</p>
-                    <p><strong>Updated:</strong> {{ note.updated_at }}</p>
-                </div>
-
-            </div>
-        {% endfor %}
-    {% else %}
-        <p>No notes connected to this grammar point yet.</p>
-    {% endif %}
-</div>
-
-<div class="menu">
-    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
-</div>
-
-
 <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
 
 <script>
+    const NOTE_DRAFT_KEY = "grammar_{{ grammar.grammar_id }}_new_note_unsaved_draft";
+
+    const noteForm = document.getElementById("note-form");
+    const titleInput = document.getElementById("title");
+    const noteContentInput = document.getElementById("note-content-input");
+    const noteContentInputAlt = document.getElementById("note-content-input-alt");
+
     tinymce.init({
-        selector: "#note-content-editor",
+        selector: "#note-editor",
         license_key: "gpl",
-        height: 350,
+        height: 450,
         menubar: "edit insert format table tools",
         plugins: "lists link table code",
         toolbar: "undo redo | blocks | bold italic underline | bullist numlist | alignleft aligncenter alignright | table | code",
         table_toolbar: "tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol",
         branding: false,
-        promotion: false
+        promotion: false,
+        setup: function (editor) {
+            editor.on("init", function () {
+                restoreUnsavedDraft();
+            });
+
+            editor.on("change keyup undo redo", function () {
+                saveUnsavedDraft();
+            });
+        }
+    });
+
+    function getEditor() {
+        return tinymce.get("note-editor");
+    }
+
+    function saveUnsavedDraft() {
+        const editor = getEditor();
+
+        if (!editor) {
+            return;
+        }
+
+        const draft = {
+            title: titleInput.value,
+            content: editor.getContent()
+        };
+
+        sessionStorage.setItem(NOTE_DRAFT_KEY, JSON.stringify(draft));
+    }
+
+    function restoreUnsavedDraft() {
+        const savedDraft = sessionStorage.getItem(NOTE_DRAFT_KEY);
+        const editor = getEditor();
+
+        if (!savedDraft || !editor) {
+            return;
+        }
+
+        try {
+            const draft = JSON.parse(savedDraft);
+
+            if (draft.title !== undefined) {
+                titleInput.value = draft.title;
+            }
+
+            if (draft.content !== undefined) {
+                editor.setContent(draft.content);
+            }
+        } catch (error) {
+            console.error("Could not restore grammar note draft:", error);
+        }
+    }
+
+    titleInput.addEventListener("input", saveUnsavedDraft);
+
+    noteForm.addEventListener("submit", function () {
+        const editor = getEditor();
+        const htmlContent = editor ? editor.getContent().trim() : "";
+        const plainText = editor ? editor.getContent({ format: "text" }).trim() : "";
+
+        if (plainText.length === 0) {
+            noteContentInput.value = "";
+            noteContentInputAlt.value = "";
+        } else {
+            noteContentInput.value = htmlContent;
+            noteContentInputAlt.value = htmlContent;
+        }
+
+        if (titleInput.value.trim() && plainText.length > 0) {
+            sessionStorage.removeItem(NOTE_DRAFT_KEY);
+        }
+
+        console.log("Submitting grammar note content:", htmlContent);
     });
 </script>
 
-
-
-<script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
-
 <script>
-    tinymce.init({
-        selector: "#content",
-        license_key: "gpl",
-        height: 350,
-        menubar: "edit insert format table tools",
-        plugins: "lists link table code",
-        toolbar: "undo redo | blocks | bold italic underline | bullist numlist | alignleft aligncenter alignright | table | code",
-        table_toolbar: "tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol",
-        branding: false,
-        promotion: false
-    });
+    document.querySelectorAll(".connect-grammar-form").forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
 
-    document.addEventListener("submit", function () {
-        if (typeof tinymce !== "undefined") {
-            tinymce.triggerSave();
-        }
+            const formData = new FormData(form);
+            const toast = document.getElementById("note-toast");
+            const connectedList = document.getElementById("connected-grammar-list");
+            const emptyMessage = document.getElementById("connected-empty-message");
+
+            fetch(window.location.pathname, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "fetch"
+                }
+            })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error("Server returned " + response.status);
+                }
+
+                return response.json();
+            })
+            .then(function (data) {
+                if (!data.ok) {
+                    toast.textContent = data.message || "Could not connect grammar point.";
+                    toast.style.display = "block";
+                    return;
+                }
+
+                toast.textContent = data.message;
+                toast.style.display = "block";
+
+                form.outerHTML = `
+                    <div class="mastery-badge-group">
+                        <span class="note-count-tag already-connected-tag">
+                            Already connected
+                        </span>
+                    </div>
+                `;
+
+                if (emptyMessage) {
+                    emptyMessage.remove();
+                }
+
+                if (connectedList) {
+                    connectedList.insertAdjacentHTML("beforeend", `
+                        <div class="connected-grammar-card pending-connection-card" data-grammar-id="${data.grammar_id}">
+                            <div>
+                                <h4 class="mastery-grammar-title">
+                                    ${data.grammar_label}
+                                </h4>
+
+                                <p class="mastery-grammar-subtitle">
+                                    Newly connected. Click Save Note to save permanently.
+                                </p>
+                            </div>
+
+                            <div class="mastery-badge-group">
+                                <span class="relation-tag relation-${data.relation_type}">
+                                    ${data.relation_type}
+                                </span>
+
+                                <form method="POST" action="${window.location.pathname}#connect-section">
+                                    <input type="hidden" name="action" value="remove_connection">
+                                    <input type="hidden" name="grammar_id" value="${data.grammar_id}">
+                                    <input type="hidden" name="keyword" value="">
+
+                                    <button type="submit" class="danger-small-button">
+                                        Remove
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    `);
+                }
+
+                setTimeout(function () {
+                    toast.style.display = "none";
+                }, 3000);
+            })
+            .catch(function (error) {
+                console.error("Connect error:", error);
+
+                toast.textContent = "Connection failed. Please try again.";
+                toast.style.display = "block";
+            });
+        });
     });
 </script>
 

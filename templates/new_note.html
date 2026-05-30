@@ -316,9 +316,7 @@
 				noteContentInputAlt.value = htmlContent;
 			}
 
-			const connectedCards = document.querySelectorAll(".connected-grammar-card");
-	
-			if (titleInput.value.trim() && plainText.length > 0 && connectedCards.length > 0) {
+			if (titleInput.value.trim() && plainText.length > 0) {
 				sessionStorage.removeItem(NOTE_DRAFT_KEY);
 			}
 	
