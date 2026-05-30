@@ -192,10 +192,45 @@
     <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
 </div>
 
+
+<script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
+
+<script>
+    tinymce.init({
+        selector: "#note-content-editor",
+        license_key: "gpl",
+        height: 350,
+        menubar: "edit insert format table tools",
+        plugins: "lists link table code",
+        toolbar: "undo redo | blocks | bold italic underline | bullist numlist | alignleft aligncenter alignright | table | code",
+        table_toolbar: "tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol",
+        branding: false,
+        promotion: false
+    });
+</script>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
+
+<script>
+    tinymce.init({
+        selector: "#content",
+        license_key: "gpl",
+        height: 350,
+        menubar: "edit insert format table tools",
+        plugins: "lists link table code",
+        toolbar: "undo redo | blocks | bold italic underline | bullist numlist | alignleft aligncenter alignright | table | code",
+        table_toolbar: "tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol",
+        branding: false,
+        promotion: false
+    });
+
+    document.addEventListener("submit", function () {
+        if (typeof tinymce !== "undefined") {
+            tinymce.triggerSave();
+        }
+    });
+</script>
+
 {% endblock %}
-
-
-
-
-
-
