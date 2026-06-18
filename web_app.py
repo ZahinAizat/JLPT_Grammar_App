@@ -141,6 +141,7 @@ DB_PATH = os.path.join(BASE_DIR, "data", "jlpt_app.db")
 if not os.path.exists(DB_PATH):
     raise FileNotFoundError(f"Database file not found: {DB_PATH}")
 
+
 def row_to_dict(row):
     if row is None:
         return None
@@ -587,6 +588,7 @@ def read_quiz_settings_from_form():
 
     session["quiz_session_correct"] = 0
     session["quiz_session_wrong"] = 0
+
 
 def get_dashboard_details(user_id, jlpt_level=None):
     conn = sqlite3.connect(DB_PATH)
@@ -1198,6 +1200,7 @@ def get_statistics_data(user_id):
         "difficulty_graph": difficulty_graph
     }
  
+
 def get_current_session_stats():
     session_correct = session.get("quiz_session_correct", 0)
     session_wrong = session.get("quiz_session_wrong", 0)
@@ -1210,6 +1213,7 @@ def get_current_session_stats():
         session_accuracy = 0
 
     return session_correct, session_wrong, session_accuracy
+
 
 def reset_web_progress(user_id, reset_scope):
     ensure_web_answer_history_table()
@@ -1384,8 +1388,6 @@ def delete_account_with_password(user_id, password):
     conn.close()
 
     return True, "Account deleted successfully."
-
-
 
 
 def get_mastery_grammar_details(
@@ -2936,6 +2938,123 @@ def mastery_details():
     )
 
 
+@app.route("/mastery/question-count-graph")
+def grammar_question_count_graph():
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    ensure_web_answer_history_table()
+
+    level_filter = request.args.get("level", "all")
+    sort_order = request.args.get("sort", "desc")
+
+    if level_filter not in ["all", "N1", "N2"]:
+        level_filter = "all"
+
+    if sort_order not in ["asc", "desc"]:
+        sort_order = "desc"
+
+    sql_sort = "ASC" if sort_order == "asc" else "DESC"
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    params = [session["user_id"]]
+
+    level_sql = ""
+    if level_filter in ["N1", "N2"]:
+        level_sql = "WHERE grammar_points.jlpt_level = ?"
+        params.append(level_filter)
+
+    cur.execute(f"""
+        SELECT
+            grammar_points.id AS grammar_id,
+            grammar_points.jlpt_level AS jlpt_level,
+            grammar_points.grammar AS grammar,
+            grammar_points.reading AS reading,
+            grammar_points.meaning AS meaning,
+
+            COUNT(web_answer_history.id) AS asked_count,
+
+            COALESCE(SUM(
+                CASE
+                    WHEN web_answer_history.is_correct = 1 THEN 1
+                    ELSE 0
+                END
+            ), 0) AS correct_count,
+
+            COALESCE(SUM(
+                CASE
+                    WHEN web_answer_history.is_correct = 0 THEN 1
+                    ELSE 0
+                END
+            ), 0) AS wrong_count
+
+        FROM grammar_points
+
+        LEFT JOIN web_answer_history
+            ON web_answer_history.correct_grammar_id = grammar_points.id
+            AND web_answer_history.user_id = ?
+
+        {level_sql}
+
+        GROUP BY grammar_points.id
+
+        ORDER BY
+            asked_count {sql_sort},
+            CASE grammar_points.jlpt_level
+                WHEN 'N1' THEN 1
+                WHEN 'N2' THEN 2
+                ELSE 3
+            END ASC,
+            grammar_points.grammar ASC
+    """, params)
+
+    rows = cur.fetchall()
+    conn.close()
+
+    grammar_stats = []
+
+    max_count = 0
+    total_asked = 0
+
+    for row in rows:
+        item = dict(row)
+
+        asked_count = item["asked_count"]
+        correct_count = item["correct_count"]
+        wrong_count = item["wrong_count"]
+
+        if asked_count > 0:
+            accuracy = round((correct_count / asked_count) * 100, 1)
+        else:
+            accuracy = 0
+
+        item["accuracy"] = accuracy
+        item["note_count"] = get_note_count_for_grammar(
+            session["user_id"],
+            item["grammar_id"]
+        )
+
+        if asked_count > max_count:
+            max_count = asked_count
+
+        total_asked += asked_count
+        grammar_stats.append(item)
+
+    return render_template(
+        "grammar_question_count_graph.html",
+        username=session["username"],
+        grammar_stats=grammar_stats,
+        level_filter=level_filter,
+        sort_order=sort_order,
+        max_count=max_count,
+        total_grammar=len(grammar_stats),
+        total_asked=total_asked
+    )
+    
+    
 @app.route("/account")
 def account_settings():
     if "user_id" not in session:

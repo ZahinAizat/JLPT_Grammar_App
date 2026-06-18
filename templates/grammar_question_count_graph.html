@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Grammar Question Count Graph</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="page-container">
+
+        <div class="graph-header">
+            <div>
+                <h1>Grammar Question Count Graph</h1>
+                <p class="graph-subtitle">
+                    All grammar points ranked by how many times they appeared in your quiz history.
+                </p>
+            </div>
+
+            <div class="graph-header-actions">
+                <a href="{{ url_for('mastery_details') }}" class="secondary-btn">
+                    Back to Mastery Details
+                </a>
+            </div>
+        </div>
+
+        <div class="graph-summary">
+            <div class="summary-card">
+                <span class="summary-label">Shown Grammar</span>
+                <span class="summary-value">{{ total_grammar }}</span>
+            </div>
+
+            <div class="summary-card">
+                <span class="summary-label">Total Asked</span>
+                <span class="summary-value">{{ total_asked }}</span>
+            </div>
+
+            <div class="summary-card">
+                <span class="summary-label">Highest Count</span>
+                <span class="summary-value">{{ max_count }}</span>
+            </div>
+        </div>
+
+        <form method="GET" action="{{ url_for('grammar_question_count_graph') }}" class="graph-filter-form">
+
+            <div class="filter-group">
+                <label for="level">Filter by level</label>
+                <select name="level" id="level">
+                    <option value="all" {% if level_filter == "all" %}selected{% endif %}>
+                        All
+                    </option>
+
+                    <option value="N1" {% if level_filter == "N1" %}selected{% endif %}>
+                        N1
+                    </option>
+
+                    <option value="N2" {% if level_filter == "N2" %}selected{% endif %}>
+                        N2
+                    </option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="sort">Sort</label>
+                <select name="sort" id="sort">
+                    <option value="desc" {% if sort_order == "desc" %}selected{% endif %}>
+                        Most asked first
+                    </option>
+
+                    <option value="asc" {% if sort_order == "asc" %}selected{% endif %}>
+                        Least asked first
+                    </option>
+                </select>
+            </div>
+
+            <button type="submit" class="primary-btn">
+                Apply
+            </button>
+
+        </form>
+
+        <div class="graph-note">
+            Click any grammar row to open its grammar notes page.
+        </div>
+
+        <div class="bar-graph-wrapper">
+
+            {% if grammar_stats %}
+
+                {% for grammar in grammar_stats %}
+
+                    {% if max_count > 0 %}
+                        {% set bar_width = (grammar["asked_count"] / max_count * 100) %}
+                    {% else %}
+                        {% set bar_width = 0 %}
+                    {% endif %}
+
+                    <a href="{{ url_for('grammar_notes', grammar_id=grammar['grammar_id']) }}" class="grammar-bar-link">
+
+                        <div class="grammar-bar-row">
+
+                            <div class="grammar-bar-info">
+
+                                <div class="grammar-bar-rank">
+                                    #{{ loop.index }}
+                                </div>
+
+                                <div class="grammar-bar-title">
+
+                                    <span class="grammar-romaji">
+                                        {{ grammar["grammar"] }}
+                                    </span>
+
+                                    {% if grammar["reading"] %}
+                                        <span class="grammar-japanese">
+                                            {{ grammar["reading"] }}
+                                        </span>
+                                    {% endif %}
+
+                                    <span class="grammar-level-badge">
+                                        {{ grammar["jlpt_level"] }}
+                                    </span>
+
+                                    {% if grammar["meaning"] %}
+                                        <div class="grammar-bar-meaning">
+                                            {{ grammar["meaning"] }}
+                                        </div>
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                            <div class="grammar-bar-track">
+                                <div class="grammar-bar-fill" style="width: {{ bar_width }}%;"></div>
+                            </div>
+
+                            <div class="grammar-bar-stats">
+
+                                <div class="grammar-bar-count">
+                                    {{ grammar["asked_count"] }}
+                                </div>
+
+                                <div class="grammar-bar-small">
+                                    asked
+                                </div>
+
+                                {% if grammar["asked_count"] > 0 %}
+                                    <div class="grammar-bar-accuracy">
+                                        {{ grammar["accuracy"] }}%
+                                    </div>
+
+                                    <div class="grammar-bar-small">
+                                        accuracy
+                                    </div>
+                                {% else %}
+                                    <div class="grammar-bar-accuracy">
+                                        -
+                                    </div>
+
+                                    <div class="grammar-bar-small">
+                                        accuracy
+                                    </div>
+                                {% endif %}
+
+                                {% if grammar["note_count"] > 0 %}
+                                    <div class="grammar-bar-note-count">
+                                        {{ grammar["note_count"] }} note{% if grammar["note_count"] != 1 %}s{% endif %}
+                                    </div>
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                    </a>
+
+                {% endfor %}
+
+            {% else %}
+
+                <div class="empty-state">
+                    No grammar data found.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+</body>
+</html>
