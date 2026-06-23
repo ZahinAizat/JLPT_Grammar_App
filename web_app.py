@@ -3725,23 +3725,133 @@ def cancel_new_note():
 
 @app.route("/learn")
 def learn_grammar():
-    if "user_id" not in session:
+    user_id = session.get("user_id")
+
+    if not user_id:
         return redirect(url_for("index"))
 
-    level_filter = request.args.get("level", "all")
     keyword = request.args.get("keyword", "").strip()
+    selected_level = request.args.get("level", "all")
 
-    grammar_points = get_learn_grammar_points(
-        level_filter=level_filter,
-        keyword=keyword
-    )
+    sort_by = request.args.get("sort_by", "id")
+    sort_order = request.args.get("sort_order", "asc")
+
+    allowed_sort_orders = {
+        "asc": "ASC",
+        "desc": "DESC"
+    }
+
+    sort_direction = allowed_sort_orders.get(sort_order, "ASC")
+
+    sort_options = {
+        "id": "grammar_points.id",
+        "grammar": "grammar_points.grammar",
+        "level": "grammar_points.jlpt_level",
+
+        "correct_count": "COALESCE(review_status.correct_count, 0)",
+        "wrong_count": "COALESCE(review_status.wrong_count, 0)",
+
+        "last_reviewed": "COALESCE(review_status.last_reviewed_at, '')",
+
+        "mastery": """
+            CASE COALESCE(review_status.mastery_level, 'new')
+                WHEN 'weak' THEN 1
+                WHEN 'learning' THEN 2
+                WHEN 'new' THEN 3
+                WHEN 'mastered' THEN 4
+                ELSE 5
+            END
+        """,
+
+        "accuracy": """
+            CASE
+                WHEN COALESCE(review_status.correct_count, 0) + COALESCE(review_status.wrong_count, 0) = 0
+                    THEN 0
+                ELSE
+                    CAST(COALESCE(review_status.correct_count, 0) AS REAL)
+                    / (COALESCE(review_status.correct_count, 0) + COALESCE(review_status.wrong_count, 0))
+            END
+        """
+    }
+
+    order_column = sort_options.get(sort_by, "grammar_points.id")
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    sql = """
+    SELECT
+        grammar_points.id AS id,
+        grammar_points.jlpt_level,
+        grammar_points.grammar,
+        grammar_points.reading,
+        grammar_points.romaji,
+        grammar_points.meaning,
+        grammar_points.formation,
+        grammar_points.example_sentence,
+        grammar_points.example_translation,
+
+        COALESCE(review_status.correct_count, 0) AS correct_count,
+        COALESCE(review_status.wrong_count, 0) AS wrong_count,
+        COALESCE(review_status.mastery_level, 'new') AS mastery_level,
+        review_status.last_reviewed_at AS last_reviewed_at
+
+    FROM grammar_points
+
+    LEFT JOIN review_status
+        ON grammar_points.id = review_status.grammar_id
+        AND review_status.user_id = ?
+
+    WHERE 1 = 1
+    """
+
+    params = [user_id]
+
+    if selected_level != "all":
+        sql += " AND grammar_points.jlpt_level = ?"
+        params.append(selected_level)
+
+    if keyword:
+        sql += """
+        AND (
+            grammar_points.grammar LIKE ?
+            OR grammar_points.reading LIKE ?
+            OR grammar_points.romaji LIKE ?
+            OR grammar_points.meaning LIKE ?
+        )
+        """
+
+        search_keyword = f"%{keyword}%"
+
+        params.extend([
+            search_keyword,
+            search_keyword,
+            search_keyword,
+            search_keyword
+        ])
+
+    sql += f"""
+    ORDER BY
+        {order_column} {sort_direction},
+        grammar_points.id ASC
+    """
+
+    cur.execute(sql, params)
+    grammar_points = [dict(row) for row in cur.fetchall()]
+
+    conn.close()
+
+    for grammar in grammar_points:
+        grammar["explanations"] = get_question_explanations_for_grammar(grammar["id"])
 
     return render_template(
         "learn.html",
-        username=session["username"],
         grammar_points=grammar_points,
-        selected_level=level_filter,
-        keyword=keyword
+        keyword=keyword,
+        selected_level=selected_level,
+        sort_by=sort_by,
+        sort_order=sort_order
     )
 
 
