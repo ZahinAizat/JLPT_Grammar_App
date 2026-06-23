@@ -290,12 +290,19 @@ def build_web_question(question):
 
 def get_filtered_question_from_database(
     user_id,
-    exclude_question_ids,
+    exclude_question_ids=None,
+    exclude_grammar_ids=None,
     jlpt_level=None,
     difficulty_filter=None,
     mastery_levels=None,
     mastery_filter_mode="include"
 ):
+    if exclude_question_ids is None:
+        exclude_question_ids = []
+
+    if exclude_grammar_ids is None:
+        exclude_grammar_ids = []
+
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
@@ -351,6 +358,12 @@ def get_filtered_question_from_database(
         sql += f" AND questions.id NOT IN ({placeholders})"
         params.extend(exclude_question_ids)
 
+    # NEW: prevent same grammar point from appearing too soon
+    if exclude_grammar_ids:
+        placeholders = ",".join("?" for _ in exclude_grammar_ids)
+        sql += f" AND grammar_points.id NOT IN ({placeholders})"
+        params.extend(exclude_grammar_ids)
+
     sql += """
     ORDER BY
         CASE COALESCE(review_status.mastery_level, 'new')
@@ -378,33 +391,71 @@ def get_filtered_question_from_database(
 
 def get_weighted_question_for_web(user_id, jlpt_level=None, difficulty_filter=None):
     recent_question_ids = session.get("recent_question_ids", [])
+    recent_grammar_ids = session.get("recent_grammar_ids", [])
+
     mastery_levels = session.get("quiz_mastery_levels", [])
     mastery_filter_mode = session.get("quiz_mastery_filter_mode", "include")
 
+    # 1. Best attempt:
+    # avoid recent question IDs AND recent grammar IDs
     question = get_filtered_question_from_database(
         user_id=user_id,
         exclude_question_ids=recent_question_ids,
+        exclude_grammar_ids=recent_grammar_ids,
         jlpt_level=jlpt_level,
         difficulty_filter=difficulty_filter,
         mastery_levels=mastery_levels,
         mastery_filter_mode=mastery_filter_mode
     )
 
-    question = row_to_dict(question)
-
-    if question is None and recent_question_ids:
-        session["recent_question_ids"] = []
-
+    # 2. If no question found:
+    # allow same grammar again, but still avoid same exact question
+    if question is None:
         question = get_filtered_question_from_database(
             user_id=user_id,
-            exclude_question_ids=[],
+            exclude_question_ids=recent_question_ids,
+            exclude_grammar_ids=[],
             jlpt_level=jlpt_level,
             difficulty_filter=difficulty_filter,
             mastery_levels=mastery_levels,
             mastery_filter_mode=mastery_filter_mode
         )
 
-        question = row_to_dict(question)
+    # 3. If still no question found:
+    # reset recent history and pick normally
+    if question is None and recent_question_ids:
+        session["recent_question_ids"] = []
+        session["recent_grammar_ids"] = []
+
+        recent_question_ids = []
+        recent_grammar_ids = []
+
+        question = get_filtered_question_from_database(
+            user_id=user_id,
+            exclude_question_ids=[],
+            exclude_grammar_ids=[],
+            jlpt_level=jlpt_level,
+            difficulty_filter=difficulty_filter,
+            mastery_levels=mastery_levels,
+            mastery_filter_mode=mastery_filter_mode
+        )
+
+    if question is None:
+        return None
+
+    question = row_to_dict(question)
+
+    # Save recent question history
+    recent_question_ids.append(question["question_id"])
+
+    # Save recent grammar history
+    recent_grammar_ids.append(question["grammar_id"])
+
+    # Keep more question IDs, because exact question repetition should be avoided longer
+    session["recent_question_ids"] = recent_question_ids[-30:]
+
+    # Keep fewer grammar IDs, so grammar points can come back later
+    session["recent_grammar_ids"] = recent_grammar_ids[-5:]
 
     return build_web_question(question)
 
