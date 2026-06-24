@@ -455,7 +455,7 @@ def get_weighted_question_for_web(user_id, jlpt_level=None, difficulty_filter=No
     session["recent_question_ids"] = recent_question_ids[-30:]
 
     # Keep fewer grammar IDs, so grammar points can come back later
-    session["recent_grammar_ids"] = recent_grammar_ids[-5:]
+    session["recent_grammar_ids"] = recent_grammar_ids[-15:]
 
     return build_web_question(question)
 
