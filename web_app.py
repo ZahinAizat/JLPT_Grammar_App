@@ -904,12 +904,14 @@ def get_question_history(
         where_sql += " AND COALESCE(review_status.mastery_level, 'new') = ?"
         where_params.append(mastery)
 
+    # IMPORTANT:
+    # answered_at is stored in UTC, so date filter should use Japan time.
     if date_from:
-        where_sql += " AND DATE(web_answer_history.answered_at) >= DATE(?)"
+        where_sql += " AND DATE(datetime(web_answer_history.answered_at, '+9 hours')) >= DATE(?)"
         where_params.append(date_from)
 
     if date_to:
-        where_sql += " AND DATE(web_answer_history.answered_at) <= DATE(?)"
+        where_sql += " AND DATE(datetime(web_answer_history.answered_at, '+9 hours')) <= DATE(?)"
         where_params.append(date_to)
 
     sort_options = {
@@ -939,7 +941,6 @@ def get_question_history(
 
     offset = (page - 1) * per_page
 
-    # Count total matching rows
     count_sql = f"""
     SELECT COUNT(*) AS total_count
 
@@ -963,15 +964,17 @@ def get_question_history(
     cur.execute(count_sql, count_params)
     total_count = cur.fetchone()["total_count"]
 
-    # Get paginated history rows
     sql = f"""
     SELECT
         web_answer_history.id,
-        web_answer_history.answered_at,
+
+        web_answer_history.answered_at AS answered_at_utc,
+        strftime('%Y-%m-%d %H:%M', datetime(web_answer_history.answered_at, '+9 hours')) AS answered_at_jst,
+
         web_answer_history.is_correct,
         web_answer_history.correct_grammar_id AS correct_grammar_id,
         web_answer_history.selected_grammar_id AS selected_grammar_id,
-        
+
         questions.question_text,
         questions.difficulty,
 
@@ -1054,7 +1057,7 @@ def get_question_history(
         history_rows.append(item)
 
     conn.close()
-    
+
     total_pages = max(1, (total_count + per_page - 1) // per_page)
 
     return {
@@ -2494,23 +2497,21 @@ def get_daily_tracker(cur, user_id, selected_level):
     level_params = []
 
     if selected_level in ("N1", "N2"):
-        level_filter = " AND grammar_points.jlpt_level = ? "
+        level_filter = " AND correct_gp.jlpt_level = ? "
         level_params.append(selected_level)
 
     cur.execute(f"""
         SELECT
-            date(datetime(user_answers.answered_at, '+9 hours')) AS answer_day,
+            DATE(datetime(web_answer_history.answered_at, '+9 hours')) AS answer_day,
             COUNT(*) AS answered,
-            COALESCE(SUM(CASE WHEN user_answers.is_correct = 1 THEN 1 ELSE 0 END), 0) AS correct,
-            COALESCE(SUM(CASE WHEN user_answers.is_correct = 0 THEN 1 ELSE 0 END), 0) AS wrong
-        FROM user_answers
-        JOIN questions
-            ON user_answers.question_id = questions.id
-        JOIN grammar_points
-            ON questions.grammar_id = grammar_points.id
-        WHERE user_answers.user_id = ?
-          AND user_answers.answered_at IS NOT NULL
-          AND date(datetime(user_answers.answered_at, '+9 hours')) BETWEEN ? AND ?
+            COALESCE(SUM(CASE WHEN web_answer_history.is_correct = 1 THEN 1 ELSE 0 END), 0) AS correct,
+            COALESCE(SUM(CASE WHEN web_answer_history.is_correct = 0 THEN 1 ELSE 0 END), 0) AS wrong
+        FROM web_answer_history
+        JOIN grammar_points AS correct_gp
+            ON web_answer_history.correct_grammar_id = correct_gp.id
+        WHERE web_answer_history.user_id = ?
+          AND web_answer_history.answered_at IS NOT NULL
+          AND DATE(datetime(web_answer_history.answered_at, '+9 hours')) BETWEEN DATE(?) AND DATE(?)
           {level_filter}
         GROUP BY answer_day
         ORDER BY answer_day
@@ -2564,18 +2565,19 @@ def get_daily_tracker(cur, user_id, selected_level):
     })
 
     daily_goal = 20
-    daily_progress_percent = round(min((today_data["answered"] / daily_goal) * 100, 100), 1)
+    daily_progress_percent = round(
+        min((today_data["answered"] / daily_goal) * 100, 100),
+        1
+    )
 
     cur.execute(f"""
         SELECT DISTINCT
-            date(datetime(user_answers.answered_at, '+9 hours')) AS answer_day
-        FROM user_answers
-        JOIN questions
-            ON user_answers.question_id = questions.id
-        JOIN grammar_points
-            ON questions.grammar_id = grammar_points.id
-        WHERE user_answers.user_id = ?
-          AND user_answers.answered_at IS NOT NULL
+            DATE(datetime(web_answer_history.answered_at, '+9 hours')) AS answer_day
+        FROM web_answer_history
+        JOIN grammar_points AS correct_gp
+            ON web_answer_history.correct_grammar_id = correct_gp.id
+        WHERE web_answer_history.user_id = ?
+          AND web_answer_history.answered_at IS NOT NULL
           {level_filter}
         ORDER BY answer_day DESC
     """, [user_id] + level_params)
