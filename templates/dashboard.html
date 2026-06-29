@@ -69,21 +69,72 @@
         This shows how many questions you answered today and your recent daily study activity.
     </p>
 
+    {% set tracker_level = "all" if dashboard.selected_level == "All levels" else dashboard.selected_level %}
+
     <div class="tracker-grid">
-        <div class="tracker-box">
-            <div class="tracker-number">{{ dashboard.daily_tracker.today.answered }}</div>
-            <div class="tracker-label">Answered Today</div>
-        </div>
 
-        <div class="tracker-box">
-            <div class="tracker-number">{{ dashboard.daily_tracker.today.correct }}</div>
-            <div class="tracker-label">Correct Today</div>
-        </div>
+        <a
+            class="tracker-link"
+            style="text-decoration: none; color: inherit; display: block;"
+            href="{{ url_for(
+                'question_history',
+                status='all',
+                jlpt_level=tracker_level,
+                difficulty='all',
+                mastery='all',
+                date_from=dashboard.daily_tracker.today_label,
+                date_to=dashboard.daily_tracker.today_label,
+                sort_by='answered_at',
+                sort_order='desc'
+            ) }}"
+        >
+            <div class="tracker-box">
+                <div class="tracker-number">{{ dashboard.daily_tracker.today.answered }}</div>
+                <div class="tracker-label">Answered Today</div>
+            </div>
+        </a>
 
-        <div class="tracker-box">
-            <div class="tracker-number">{{ dashboard.daily_tracker.today.wrong }}</div>
-            <div class="tracker-label">Wrong Today</div>
-        </div>
+        <a
+            class="tracker-link"
+            style="text-decoration: none; color: inherit; display: block;"
+            href="{{ url_for(
+                'question_history',
+                status='correct',
+                jlpt_level=tracker_level,
+                difficulty='all',
+                mastery='all',
+                date_from=dashboard.daily_tracker.today_label,
+                date_to=dashboard.daily_tracker.today_label,
+                sort_by='answered_at',
+                sort_order='desc'
+            ) }}"
+        >
+            <div class="tracker-box">
+                <div class="tracker-number">{{ dashboard.daily_tracker.today.correct }}</div>
+                <div class="tracker-label">Correct Today</div>
+            </div>
+        </a>
+
+        <a
+            class="tracker-link"
+            style="text-decoration: none; color: inherit; display: block;"
+            href="{{ url_for(
+                'question_history',
+                status='wrong',
+                jlpt_level=tracker_level,
+                difficulty='all',
+                mastery='all',
+                date_from=dashboard.daily_tracker.today_label,
+                date_to=dashboard.daily_tracker.today_label,
+                sort_by='answered_at',
+                sort_order='desc'
+            ) }}"
+        >
+            <div class="tracker-box">
+                <div class="tracker-number">{{ dashboard.daily_tracker.today.wrong }}</div>
+                <div class="tracker-label">Wrong Today</div>
+            </div>
+        </a>
 
         <div class="tracker-box">
             <div class="tracker-number">{{ dashboard.daily_tracker.today.accuracy }}%</div>
@@ -94,6 +145,7 @@
             <div class="tracker-number">{{ dashboard.daily_tracker.current_streak }}</div>
             <div class="tracker-label">Day Streak</div>
         </div>
+
     </div>
 
     <div class="daily-goal-row">

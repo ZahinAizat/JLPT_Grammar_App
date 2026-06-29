@@ -2,251 +2,365 @@
 
 {% block content %}
 
-<h2>Question History</h2>
+<h2>Dashboard</h2>
 
 <p>Current user: <strong>{{ username }}</strong></p>
 
 <div class="card">
-    <h3>Filter and Sort</h3>
+    <h3>Dashboard Settings</h3>
 
     <p class="section-description">
-        Use these options to review specific quiz answers. You can filter by result, level,
-        difficulty, date, and mastery level.
+        Choose which JLPT level you want to view. This changes the dashboard numbers below.
     </p>
 
-    <form action="{{ url_for('question_history') }}" method="GET" class="setup-form">
-
-        <label for="status"><strong>Status</strong></label>
-        <select name="status" id="status">
-            <option value="all" {% if status_filter == "all" %}selected{% endif %}>All answers</option>
-            <option value="correct" {% if status_filter == "correct" %}selected{% endif %}>Correct only</option>
-            <option value="wrong" {% if status_filter == "wrong" %}selected{% endif %}>Wrong only</option>
-        </select>
-
+    <form action="{{ url_for('dashboard') }}" method="GET" class="setup-form">
         <label for="jlpt_level"><strong>JLPT Level</strong></label>
+
         <select name="jlpt_level" id="jlpt_level">
-            <option value="all" {% if selected_level == "all" %}selected{% endif %}>All levels</option>
-            <option value="N1" {% if selected_level == "N1" %}selected{% endif %}>N1 only</option>
-            <option value="N2" {% if selected_level == "N2" %}selected{% endif %}>N2 only</option>
+            <option value="all" {% if dashboard.selected_level == "All levels" %}selected{% endif %}>
+                All levels
+            </option>
+
+            <option value="N1" {% if dashboard.selected_level == "N1" %}selected{% endif %}>
+                N1 only
+            </option>
+
+            <option value="N2" {% if dashboard.selected_level == "N2" %}selected{% endif %}>
+                N2 only
+            </option>
         </select>
 
-        <label for="difficulty"><strong>Difficulty</strong></label>
-        <select name="difficulty" id="difficulty">
-            <option value="all" {% if selected_difficulty == "all" %}selected{% endif %}>All difficulties</option>
-            <option value="easy" {% if selected_difficulty == "easy" %}selected{% endif %}>Easy only</option>
-            <option value="normal" {% if selected_difficulty == "normal" %}selected{% endif %}>Normal only</option>
-            <option value="hard" {% if selected_difficulty == "hard" %}selected{% endif %}>Hard only</option>
-        </select>
-
-        <label for="mastery"><strong>Mastery</strong></label>
-        <select name="mastery" id="mastery">
-            <option value="all" {% if selected_mastery == "all" %}selected{% endif %}>All mastery levels</option>
-            <option value="new" {% if selected_mastery == "new" %}selected{% endif %}>New only</option>
-            <option value="learning" {% if selected_mastery == "learning" %}selected{% endif %}>Learning only</option>
-            <option value="weak" {% if selected_mastery == "weak" %}selected{% endif %}>Weak only</option>
-            <option value="mastered" {% if selected_mastery == "mastered" %}selected{% endif %}>Mastered only</option>
-        </select>
-
-        <label for="date_from"><strong>Date from</strong></label>
-        <input type="date" name="date_from" id="date_from" value="{{ date_from }}">
-
-        <label for="date_to"><strong>Date to</strong></label>
-        <input type="date" name="date_to" id="date_to" value="{{ date_to }}">
-
-        <label for="sort_by"><strong>Sort by</strong></label>
-        <select name="sort_by" id="sort_by">
-            <option value="answered_at" {% if sort_by == "answered_at" %}selected{% endif %}>Answered date</option>
-            <option value="status" {% if sort_by == "status" %}selected{% endif %}>Correct / Wrong</option>
-            <option value="jlpt_level" {% if sort_by == "jlpt_level" %}selected{% endif %}>JLPT level</option>
-            <option value="difficulty" {% if sort_by == "difficulty" %}selected{% endif %}>Difficulty</option>
-            <option value="mastery" {% if sort_by == "mastery" %}selected{% endif %}>Mastery</option>
-            <option value="appeared_count" {% if sort_by == "appeared_count" %}selected{% endif %}>Times appeared</option>
-            <option value="grammar" {% if sort_by == "grammar" %}selected{% endif %}>Grammar</option>
-        </select>
-
-        <label for="sort_order"><strong>Sort order</strong></label>
-        <select name="sort_order" id="sort_order">
-            <option value="desc" {% if sort_order == "desc" %}selected{% endif %}>Descending</option>
-            <option value="asc" {% if sort_order == "asc" %}selected{% endif %}>Ascending</option>
-        </select>
-
-        <button type="submit">Apply Filter</button>
+        <button type="submit">Update Dashboard</button>
     </form>
 </div>
 
 <div class="card">
-    <h3>Recent Answers</h3>
+    <h3>Database</h3>
 
-    <p><strong>Total matching answers:</strong> {{ total_count }}</p>
-    <p><strong>Showing:</strong> {{ history|length }} answer(s)</p>
+    <p class="section-description">
+        This shows how much grammar and how many quiz questions are available in the app for the selected level.
+    </p>
 
-    {% if history %}
+    <p><strong>Level:</strong> {{ dashboard.selected_level }}</p>
+    <p><strong>Total grammar points:</strong> {{ dashboard.total_grammar }}</p>
+    <p><strong>Total questions:</strong> {{ dashboard.total_questions }}</p>
+</div>
 
-        <div class="card-preview-box">
-            <h4>Quick Jump</h4>
+<div class="card">
+    <h3>Answered Questions Summary</h3>
 
-            <p class="section-description">
-                Click an answer below to jump directly to its card.
-            </p>
+    <p class="section-description">
+        This shows your quiz performance based on the answers saved for this account.
+    </p>
 
-            <div class="card-preview-list">
-                {% for item in history %}
-                    <button
-                        type="button"
-                        class="card-preview-item"
-                        onclick="jumpToSlide({{ loop.index0 }}, event)"
-                    >
-                        {{ loop.index }}.
-                        {% if item.is_correct == 1 %}
-                            Correct
-                        {% else %}
-                            Wrong
-                        {% endif %}
-                        -
-                        {{ item.correct_grammar }}
-                    </button>
-                {% endfor %}
+    <p><strong>Total answered:</strong> {{ dashboard.total_answered }}</p>
+    <p><strong>Correct:</strong> {{ dashboard.correct }}</p>
+    <p><strong>Wrong:</strong> {{ dashboard.wrong }}</p>
+    <p><strong>Overall accuracy:</strong> {{ dashboard.accuracy }}%</p>
+</div>
+
+<div class="card">
+    <div class="card-title-row">
+        <h3>Daily Question Tracker</h3>
+        <span class="tracker-date">{{ dashboard.daily_tracker.today_label }}</span>
+    </div>
+
+    <p class="section-description">
+        This shows how many questions you answered today and your recent daily study activity.
+    </p>
+
+    <p class="section-description">
+        Click the first three boxes to open Question History already filtered for today's answers.
+    </p>
+
+    {% set tracker_level = "all" if dashboard.selected_level == "All levels" else dashboard.selected_level %}
+
+    <div class="tracker-click-grid">
+
+        <a
+            class="tracker-link"
+            href="{{ url_for(
+                'question_history',
+                status='all',
+                jlpt_level=tracker_level,
+                difficulty='all',
+                mastery='all',
+                date_from=dashboard.daily_tracker.today_label,
+                date_to=dashboard.daily_tracker.today_label,
+                sort_by='answered_at',
+                sort_order='desc'
+            ) }}"
+        >
+            <div class="tracker-box clickable-tracker-box">
+                <div class="tracker-number">{{ dashboard.daily_tracker.today.answered }}</div>
+                <div class="tracker-label">Answered Today</div>
+                <div class="tracker-guide">View all answers today</div>
             </div>
+        </a>
+
+        <a
+            class="tracker-link"
+            href="{{ url_for(
+                'question_history',
+                status='correct',
+                jlpt_level=tracker_level,
+                difficulty='all',
+                mastery='all',
+                date_from=dashboard.daily_tracker.today_label,
+                date_to=dashboard.daily_tracker.today_label,
+                sort_by='answered_at',
+                sort_order='desc'
+            ) }}"
+        >
+            <div class="tracker-box clickable-tracker-box">
+                <div class="tracker-number">{{ dashboard.daily_tracker.today.correct }}</div>
+                <div class="tracker-label">Correct Today</div>
+                <div class="tracker-guide">View correct answers</div>
+            </div>
+        </a>
+
+        <a
+            class="tracker-link"
+            href="{{ url_for(
+                'question_history',
+                status='wrong',
+                jlpt_level=tracker_level,
+                difficulty='all',
+                mastery='all',
+                date_from=dashboard.daily_tracker.today_label,
+                date_to=dashboard.daily_tracker.today_label,
+                sort_by='answered_at',
+                sort_order='desc'
+            ) }}"
+        >
+            <div class="tracker-box clickable-tracker-box">
+                <div class="tracker-number">{{ dashboard.daily_tracker.today.wrong }}</div>
+                <div class="tracker-label">Wrong Today</div>
+                <div class="tracker-guide">View wrong answers</div>
+            </div>
+        </a>
+
+    </div>
+
+    <div class="tracker-secondary-grid">
+        <div class="tracker-box">
+            <div class="tracker-number">{{ dashboard.daily_tracker.today.accuracy }}%</div>
+            <div class="tracker-label">Today Accuracy</div>
         </div>
 
-        {% for item in history %}
-            <div class="mastery-grammar-card slide-card">
+        <div class="tracker-box">
+            <div class="tracker-number">{{ dashboard.daily_tracker.current_streak }}</div>
+            <div class="tracker-label">Day Streak</div>
+        </div>
+    </div>
 
-                <div class="mastery-grammar-header">
-                    <div>
-                        <h4 class="mastery-grammar-title">
-                            {{ loop.index }}. {{ item.correct_grammar }}
-                        </h4>
+    <div class="daily-goal-row">
+        <strong>Daily goal:</strong>
 
-                        {% if item.correct_reading %}
-                            <p class="mastery-grammar-subtitle">{{ item.correct_reading }}</p>
-                        {% endif %}
-                    </div>
+        <span>
+            {{ dashboard.daily_tracker.today.answered }}
+            /
+            {{ dashboard.daily_tracker.daily_goal }}
+            questions
+        </span>
 
-                    <div class="mastery-badge-group">
-						{% if item.is_correct == 1 %}
-							<span class="status-pill correct-pill">Correct</span>
-						{% else %}
-							<span class="status-pill wrong-pill">Wrong</span>
-						{% endif %}
+        <span>
+            {{ dashboard.daily_tracker.daily_progress_percent }}%
+        </span>
+    </div>
 
-						<span class="mastery-tag">{{ item.mastery_level|capitalize }}</span>
-						<span class="jlpt-tag">{{ item.jlpt_level }}</span>
-						<span class="note-count-tag">Notes: {{ item.correct_note_count }}</span>
+    <div class="daily-progress-outer">
+        <div
+            class="daily-progress-inner"
+            style="width: {{ dashboard.daily_tracker.daily_progress_percent }}%;"
+        ></div>
+    </div>
 
-						<a class="note-button" href="{{ url_for('grammar_notes', grammar_id=item.correct_grammar_id) }}">
-							Notes
-						</a>
-					</div>
-                </div>
+    <h4>Last 7 Days</h4>
 
-                <div class="mastery-grammar-section">
-                    <h5>Answer Information</h5>
+    <table class="summary-table">
+        <tr>
+            <th>Date</th>
+            <th>Answered</th>
+            <th>Correct</th>
+            <th>Wrong</th>
+            <th>Accuracy</th>
+        </tr>
 
-                    <p><strong>Answered at:</strong> {{ item.answered_at_jst }} JST </p>
-
-                    {% if item.difficulty %}
-                        <p><strong>Difficulty:</strong> {{ item.difficulty }}</p>
-                    {% endif %}
-
-                    <p><strong>Times this grammar appeared:</strong> {{ item.appeared_count }}</p>
-                    <p><strong>Current grammar stats:</strong> Correct {{ item.correct_count }}, Wrong {{ item.wrong_count }}</p>
-
-                    {% if item.question_text %}
-                        <p><strong>Question:</strong> {{ item.question_text }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="mastery-grammar-divider"></div>
-
-                <div class="mastery-grammar-section">
-                    <h5>Correct Grammar Details</h5>
-
-                    <p><strong>Grammar:</strong> {{ item.correct_grammar }}</p>
-
-                    {% if item.correct_reading %}
-                        <p><strong>Reading:</strong> {{ item.correct_reading }}</p>
-                    {% endif %}
-
-                    <p><strong>Meaning:</strong> {{ item.correct_meaning }}</p>
-
-                    {% if item.correct_formation %}
-                        <p><strong>Formation:</strong> {{ item.correct_formation }}</p>
-                    {% endif %}
-
-                    {% if item.correct_example_sentence %}
-                        <p><strong>Example sentence:</strong> {{ item.correct_example_sentence }}</p>
-                    {% endif %}
-
-                    {% if item.correct_example_translation %}
-                        <p><strong>Example translation:</strong> {{ item.correct_example_translation }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="mastery-grammar-divider"></div>
-
-                <div class="mastery-grammar-section">
-                    <h5>Your Answer Details</h5>
-
-                    {% if item.selected_grammar %}
-                        <p><strong>Your answer:</strong> {{ item.selected_grammar }}</p>
-
-						{% if item.selected_grammar_id %}
-							<p>
-								<a class="note-button" href="{{ url_for('grammar_notes', grammar_id=item.selected_grammar_id) }}">
-									Notes for your answer
-								</a>
-
-								<span class="note-count-tag">Notes: {{ item.selected_note_count }}</span>
-							</p>
-						{% endif %}
-
-                        {% if item.selected_reading %}
-                            <p><strong>Reading:</strong> {{ item.selected_reading }}</p>
-                        {% endif %}
-
-                        <p><strong>Meaning:</strong> {{ item.selected_meaning }}</p>
-
-                        {% if item.selected_formation %}
-                            <p><strong>Formation:</strong> {{ item.selected_formation }}</p>
-                        {% endif %}
-
-                        {% if item.selected_example_sentence %}
-                            <p><strong>Example sentence:</strong> {{ item.selected_example_sentence }}</p>
-                        {% endif %}
-
-                        {% if item.selected_example_translation %}
-                            <p><strong>Example translation:</strong> {{ item.selected_example_translation }}</p>
-                        {% endif %}
-                    {% else %}
-                        <p><strong>Your answer:</strong> No answer selected</p>
-                    {% endif %}
-                </div>
-
-            </div>
+        {% for day in dashboard.daily_tracker.last_7_days %}
+        <tr>
+            <td>{{ day.label }}</td>
+            <td>{{ day.answered }}</td>
+            <td>{{ day.correct }}</td>
+            <td>{{ day.wrong }}</td>
+            <td>{{ day.accuracy }}%</td>
+        </tr>
         {% endfor %}
+    </table>
+</div>
 
-        <div class="slide-controls">
-            <button type="button" onclick="firstSlide(event)">First</button>
-            <button type="button" onclick="previousSlide(event)">Previous</button>
+<div class="card">
+    <div class="card-title-row">
+        <h3>Grammar Points Mastery Summary</h3>
 
-            <span id="slide-counter">
-                1 / {{ history|length }}
-            </span>
+        <div class="button-row">
+            <a class="small-button" href="{{ url_for('mastery_details') }}">View Details</a>
+            <a class="small-button" href="{{ url_for('mastery_explanation') }}">More</a>
+        </div>
+    </div>
 
-            <button type="button" onclick="nextSlide(event)">Next</button>
-            <button type="button" onclick="lastSlide(event)">Last</button>
+    <div class="button-explanation-box">
+        <div class="button-explanation-item">
+            <strong>View Details:</strong>
+            See the exact grammar points inside each mastery level, including reading, meaning,
+            formation, example sentence, example translation, and your study stats.
         </div>
 
-    {% else %}
-        <p>No matching quiz history found.</p>
-    {% endif %}
+        <div class="button-explanation-item">
+            <strong>More:</strong>
+            Learn how the app decides whether a grammar point is New, Learning, Weak, or Mastered.
+        </div>
+    </div>
+
+    <p class="section-description">
+        This shows the current learning status of grammar points. A grammar point can move from new to learning, weak, or mastered depending on your answers.
+    </p>
+
+    <table class="summary-table">
+        <tr>
+            <th>Mastery</th>
+            <th>Count</th>
+            <th>Percentage</th>
+            <th>Meaning</th>
+        </tr>
+
+        <tr>
+            <td>New</td>
+            <td>{{ dashboard.mastery.new.count }}</td>
+            <td>{{ dashboard.mastery.new.percent }}%</td>
+            <td>Grammar points that have not been studied much yet.</td>
+        </tr>
+
+        <tr>
+            <td>Learning</td>
+            <td>{{ dashboard.mastery.learning.count }}</td>
+            <td>{{ dashboard.mastery.learning.percent }}%</td>
+            <td>Grammar points you have started practicing.</td>
+        </tr>
+
+        <tr>
+            <td>Weak</td>
+            <td>{{ dashboard.mastery.weak.count }}</td>
+            <td>{{ dashboard.mastery.weak.percent }}%</td>
+            <td>Grammar points that need more review because of repeated mistakes.</td>
+        </tr>
+
+        <tr>
+            <td>Mastered</td>
+            <td>{{ dashboard.mastery.mastered.count }}</td>
+            <td>{{ dashboard.mastery.mastered.percent }}%</td>
+            <td>Grammar points with strong accuracy after repeated correct answers.</td>
+        </tr>
+    </table>
 </div>
 
-<div class="menu">
-    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
-</div>
+<div class="card">
+    <h3>App Features</h3>
 
-<script src="{{ url_for('static', filename='slide_cards.js') }}"></script>
+    <p class="section-description">
+        Choose what you want to do next.
+    </p>
+
+    <div class="feature-grid">
+
+        <div class="feature-card">
+            <h4>Start Quiz</h4>
+            <p>
+                Start a quiz using your own filters. You can choose JLPT level,
+                difficulty, mastery level, and number of questions.
+            </p>
+            <a href="{{ url_for('weighted_quiz_setup') }}">Start</a>
+        </div>
+
+        <div class="feature-card">
+            <h4>How Questions Are Selected</h4>
+            <p>
+                Learn how the app chooses questions using filters, mastery levels,
+                weighted selection, and cooldown.
+            </p>
+            <a href="{{ url_for('question_selection_explanation') }}">Learn More</a>
+        </div>
+
+        <div class="feature-card">
+            <h4>Search Grammar</h4>
+            <p>
+                Search grammar by expression, reading, meaning, formation, example sentence, or translation.
+            </p>
+            <a href="{{ url_for('search_grammar') }}">Search</a>
+        </div>
+
+        <div class="feature-card">
+            <h4>Learn Grammar</h4>
+            <p>
+                Browse all grammar points and read explanations.
+            </p>
+            <a href="{{ url_for('learn_grammar') }}">Open Learn</a>
+        </div>
+
+        <div class="feature-card">
+            <h4>Question History</h4>
+            <p>
+                Review your past quiz answers. You can check correct answers,
+                wrong answers, selected choices, and full grammar details.
+            </p>
+            <a href="{{ url_for('question_history') }}">View History</a>
+        </div>
+
+        <div class="feature-card">
+            <h4>Statistics</h4>
+            <p>
+                See your overall quiz performance, accuracy by JLPT level,
+                difficulty, and mastery distribution.
+            </p>
+            <a href="{{ url_for('statistics') }}">View Statistics</a>
+        </div>
+
+        <div class="feature-card">
+            <h4>Note Collection</h4>
+            <p>
+                View all of your grammar notes in one place. You can search, filter,
+                sort, and open the grammar points connected to each note.
+            </p>
+            <a href="{{ url_for('notes_collection') }}">Open Notes</a>
+        </div>
+
+        <div class="feature-card danger-feature">
+            <h4>Reset Progress</h4>
+            <p>
+                Delete your saved progress for all levels, N1 only, or N2 only.
+                Use this carefully because reset actions cannot be undone.
+            </p>
+            <a href="{{ url_for('reset_page') }}">Reset</a>
+        </div>
+
+        <div class="feature-card">
+            <h4>Account Settings</h4>
+            <p>
+                View your account information or delete your account.
+                Deleting an account requires your password.
+            </p>
+            <a href="{{ url_for('account_settings') }}">Open</a>
+        </div>
+
+        <div class="feature-card danger-feature">
+            <h4>Logout</h4>
+            <p>
+                Return to the user selection page.
+            </p>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+
+    </div>
+</div>
 
 {% endblock %}

@@ -1745,3 +1745,79 @@ stats slider
     background: #333;
     cursor: pointer;
 }
+
+/*=======================
+daily tracker buttons
+=========================*/
+.tracker-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    margin-top: 15px;
+    margin-bottom: 20px;
+}
+
+.tracker-grid > a,
+.tracker-grid > .tracker-box {
+    min-width: 0;
+}
+
+.tracker-click-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    margin-top: 15px;
+    margin-bottom: 12px;
+}
+
+.tracker-secondary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    margin-bottom: 20px;
+}
+
+.tracker-box {
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.tracker-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    min-width: 0;
+}
+
+.tracker-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.tracker-link .tracker-box {
+    height: 100%;
+}
+
+.clickable-tracker-box {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.clickable-tracker-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.tracker-guide {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #666;
+}
+
+@media (max-width: 700px) {
+    .tracker-grid,
+    .tracker-click-grid,
+    .tracker-secondary-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
