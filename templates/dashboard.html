@@ -59,27 +59,110 @@
     <p><strong>Overall accuracy:</strong> {{ dashboard.accuracy }}%</p>
 </div>
 
-<div class="card-title-row">
-    <h3>Grammar Points Mastery Summary</h3>
-
-    <div class="button-row">
-        <a class="small-button" href="{{ url_for('mastery_details') }}">View Details</a>
-        <a class="small-button" href="{{ url_for('mastery_explanation') }}">More</a>
+<div class="card">
+    <div class="card-title-row">
+        <h3>Daily Question Tracker</h3>
+        <span class="tracker-date">{{ dashboard.daily_tracker.today_label }}</span>
     </div>
+
+    <p class="section-description">
+        This shows how many questions you answered today and your recent daily study activity.
+    </p>
+
+    <div class="tracker-grid">
+        <div class="tracker-box">
+            <div class="tracker-number">{{ dashboard.daily_tracker.today.answered }}</div>
+            <div class="tracker-label">Answered Today</div>
+        </div>
+
+        <div class="tracker-box">
+            <div class="tracker-number">{{ dashboard.daily_tracker.today.correct }}</div>
+            <div class="tracker-label">Correct Today</div>
+        </div>
+
+        <div class="tracker-box">
+            <div class="tracker-number">{{ dashboard.daily_tracker.today.wrong }}</div>
+            <div class="tracker-label">Wrong Today</div>
+        </div>
+
+        <div class="tracker-box">
+            <div class="tracker-number">{{ dashboard.daily_tracker.today.accuracy }}%</div>
+            <div class="tracker-label">Today Accuracy</div>
+        </div>
+
+        <div class="tracker-box">
+            <div class="tracker-number">{{ dashboard.daily_tracker.current_streak }}</div>
+            <div class="tracker-label">Day Streak</div>
+        </div>
+    </div>
+
+    <div class="daily-goal-row">
+        <strong>Daily goal:</strong>
+
+        <span>
+            {{ dashboard.daily_tracker.today.answered }}
+            /
+            {{ dashboard.daily_tracker.daily_goal }}
+            questions
+        </span>
+
+        <span>
+            {{ dashboard.daily_tracker.daily_progress_percent }}%
+        </span>
+    </div>
+
+    <div class="daily-progress-outer">
+        <div
+            class="daily-progress-inner"
+            style="width: {{ dashboard.daily_tracker.daily_progress_percent }}%;"
+        ></div>
+    </div>
+
+    <h4>Last 7 Days</h4>
+
+    <table class="summary-table">
+        <tr>
+            <th>Date</th>
+            <th>Answered</th>
+            <th>Correct</th>
+            <th>Wrong</th>
+            <th>Accuracy</th>
+        </tr>
+
+        {% for day in dashboard.daily_tracker.last_7_days %}
+        <tr>
+            <td>{{ day.label }}</td>
+            <td>{{ day.answered }}</td>
+            <td>{{ day.correct }}</td>
+            <td>{{ day.wrong }}</td>
+            <td>{{ day.accuracy }}%</td>
+        </tr>
+        {% endfor %}
+    </table>
 </div>
 
-<div class="button-explanation-box">
-    <div class="button-explanation-item">
-        <strong>View Details:</strong>
-        See the exact grammar points inside each mastery level, including reading, meaning,
-        formation, example sentence, example translation, and your study stats.
+<div class="card">
+    <div class="card-title-row">
+        <h3>Grammar Points Mastery Summary</h3>
+
+        <div class="button-row">
+            <a class="small-button" href="{{ url_for('mastery_details') }}">View Details</a>
+            <a class="small-button" href="{{ url_for('mastery_explanation') }}">More</a>
+        </div>
     </div>
 
-    <div class="button-explanation-item">
-        <strong>More:</strong>
-        Learn how the app decides whether a grammar point is New, Learning, Weak, or Mastered.
+    <div class="button-explanation-box">
+        <div class="button-explanation-item">
+            <strong>View Details:</strong>
+            See the exact grammar points inside each mastery level, including reading, meaning,
+            formation, example sentence, example translation, and your study stats.
+        </div>
+
+        <div class="button-explanation-item">
+            <strong>More:</strong>
+            Learn how the app decides whether a grammar point is New, Learning, Weak, or Mastered.
+        </div>
     </div>
-</div>
 
     <p class="section-description">
         This shows the current learning status of grammar points. A grammar point can move from new to learning, weak, or mastered depending on your answers.
@@ -132,21 +215,24 @@
 
     <div class="feature-grid">
 
-		<div class="feature-card">
-			<h4>Start Quiz</h4>
-			<p>
-				Start a quiz using your own filters. You can choose JLPT 	level, difficulty,mastery level, and number of questions.
-			</p>
-			<a href="{{ url_for('weighted_quiz_setup') }}">Start</a>
-		</div>
+        <div class="feature-card">
+            <h4>Start Quiz</h4>
+            <p>
+                Start a quiz using your own filters. You can choose JLPT level,
+                difficulty, mastery level, and number of questions.
+            </p>
+            <a href="{{ url_for('weighted_quiz_setup') }}">Start</a>
+        </div>
 
-		<div class="feature-card">
-			<h4>How Questions Are Selected</h4>
-			<p>
-				Learn how the app chooses questions using filters, mastery levels, weighted selection,and cooldown.
-			</p>
-			<a href="{{ url_for('question_selection_explanation') }}">Learn More</a>
-		</div>
+        <div class="feature-card">
+            <h4>How Questions Are Selected</h4>
+            <p>
+                Learn how the app chooses questions using filters, mastery levels,
+                weighted selection, and cooldown.
+            </p>
+            <a href="{{ url_for('question_selection_explanation') }}">Learn More</a>
+        </div>
+
         <div class="feature-card">
             <h4>Search Grammar</h4>
             <p>
@@ -154,54 +240,59 @@
             </p>
             <a href="{{ url_for('search_grammar') }}">Search</a>
         </div>
-		
-		<div class="feature-card">
+
+        <div class="feature-card">
             <h4>Learn Grammar</h4>
             <p>
                 Browse all grammar points and read explanations.
             </p>
-            <a href="{{ url_for('learn_grammar') }}">Search</a>
+            <a href="{{ url_for('learn_grammar') }}">Open Learn</a>
         </div>
 
-		<div class="feature-card">
-			<h4>Question History</h4>
-			<p>
-				Review your past quiz answers. You can check correct answers, wrong answers,selected choices, and full grammar details.
-			</p>
-			<a href="{{ url_for('question_history') }}">View History</a>
-		</div>
+        <div class="feature-card">
+            <h4>Question History</h4>
+            <p>
+                Review your past quiz answers. You can check correct answers,
+                wrong answers, selected choices, and full grammar details.
+            </p>
+            <a href="{{ url_for('question_history') }}">View History</a>
+        </div>
 
-		<div class="feature-card">
-			<h4>Statistics</h4>
-			<p>
-				See your overall quiz performance, accuracy by JLPT level, difficulty,and mastery distribution.
-			</p>
-			<a href="{{ url_for('statistics') }}">View Statistics</a>
-		</div>
+        <div class="feature-card">
+            <h4>Statistics</h4>
+            <p>
+                See your overall quiz performance, accuracy by JLPT level,
+                difficulty, and mastery distribution.
+            </p>
+            <a href="{{ url_for('statistics') }}">View Statistics</a>
+        </div>
 
-		<div class="feature-card">
-			<h4>Note Collection</h4>
-			<p>
-				View all of your grammar notes in one place. You can search, filter,sort, and open the grammar points connected to each note.
-			</p>
-			<a href="{{ url_for('notes_collection') }}">Open Notes</a>
-		</div>
+        <div class="feature-card">
+            <h4>Note Collection</h4>
+            <p>
+                View all of your grammar notes in one place. You can search, filter,
+                sort, and open the grammar points connected to each note.
+            </p>
+            <a href="{{ url_for('notes_collection') }}">Open Notes</a>
+        </div>
 
-		<div class="feature-card danger-feature">
-			<h4>Reset Progress</h4>
-			<p>
-				Delete your saved progress for all levels, N1 only, or N2 only.Use this carefully because reset actions cannot be undone.
-			</p>
-			<a href="{{ url_for('reset_page') }}">Reset</a>
-		</div>
+        <div class="feature-card danger-feature">
+            <h4>Reset Progress</h4>
+            <p>
+                Delete your saved progress for all levels, N1 only, or N2 only.
+                Use this carefully because reset actions cannot be undone.
+            </p>
+            <a href="{{ url_for('reset_page') }}">Reset</a>
+        </div>
 
-		<div class="feature-card">
-			<h4>Account Settings</h4>
-			<p>
-				View your account information or delete your account.Deleting an account requires your password.
-			</p>
-			<a href="{{ url_for('account_settings') }}">Open</a>
-		</div>
+        <div class="feature-card">
+            <h4>Account Settings</h4>
+            <p>
+                View your account information or delete your account.
+                Deleting an account requires your password.
+            </p>
+            <a href="{{ url_for('account_settings') }}">Open</a>
+        </div>
 
         <div class="feature-card danger-feature">
             <h4>Logout</h4>

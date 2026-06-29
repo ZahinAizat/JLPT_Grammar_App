@@ -6,7 +6,7 @@ import html
 import bleach
 import re
 from markupsafe import Markup, escape
-
+from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import (
@@ -2486,6 +2486,119 @@ def get_learn_grammar_points(level_filter="all", keyword=""):
 app.jinja_env.filters["markdown_note"] = render_note_markdown
 
 
+def get_daily_tracker(cur, user_id, selected_level):
+    today = (datetime.now(timezone.utc) + timedelta(hours=9)).date()
+    start_day = today - timedelta(days=6)
+
+    level_filter = ""
+    level_params = []
+
+    if selected_level in ("N1", "N2"):
+        level_filter = " AND grammar_points.jlpt_level = ? "
+        level_params.append(selected_level)
+
+    cur.execute(f"""
+        SELECT
+            date(datetime(user_answers.answered_at, '+9 hours')) AS answer_day,
+            COUNT(*) AS answered,
+            COALESCE(SUM(CASE WHEN user_answers.is_correct = 1 THEN 1 ELSE 0 END), 0) AS correct,
+            COALESCE(SUM(CASE WHEN user_answers.is_correct = 0 THEN 1 ELSE 0 END), 0) AS wrong
+        FROM user_answers
+        JOIN questions
+            ON user_answers.question_id = questions.id
+        JOIN grammar_points
+            ON questions.grammar_id = grammar_points.id
+        WHERE user_answers.user_id = ?
+          AND user_answers.answered_at IS NOT NULL
+          AND date(datetime(user_answers.answered_at, '+9 hours')) BETWEEN ? AND ?
+          {level_filter}
+        GROUP BY answer_day
+        ORDER BY answer_day
+    """, [user_id, start_day.isoformat(), today.isoformat()] + level_params)
+
+    rows = cur.fetchall()
+
+    data_by_day = {}
+
+    for row in rows:
+        answered = row["answered"] or 0
+        correct = row["correct"] or 0
+        wrong = row["wrong"] or 0
+
+        data_by_day[row["answer_day"]] = {
+            "answered": answered,
+            "correct": correct,
+            "wrong": wrong,
+            "accuracy": round((correct / answered) * 100, 1) if answered > 0 else 0
+        }
+
+    last_7_days = []
+
+    for i in range(7):
+        day = start_day + timedelta(days=i)
+        day_key = day.isoformat()
+
+        day_data = data_by_day.get(day_key, {
+            "answered": 0,
+            "correct": 0,
+            "wrong": 0,
+            "accuracy": 0
+        })
+
+        last_7_days.append({
+            "date": day_key,
+            "label": day.strftime("%m/%d"),
+            "answered": day_data["answered"],
+            "correct": day_data["correct"],
+            "wrong": day_data["wrong"],
+            "accuracy": day_data["accuracy"]
+        })
+
+    today_key = today.isoformat()
+
+    today_data = data_by_day.get(today_key, {
+        "answered": 0,
+        "correct": 0,
+        "wrong": 0,
+        "accuracy": 0
+    })
+
+    daily_goal = 20
+    daily_progress_percent = round(min((today_data["answered"] / daily_goal) * 100, 100), 1)
+
+    cur.execute(f"""
+        SELECT DISTINCT
+            date(datetime(user_answers.answered_at, '+9 hours')) AS answer_day
+        FROM user_answers
+        JOIN questions
+            ON user_answers.question_id = questions.id
+        JOIN grammar_points
+            ON questions.grammar_id = grammar_points.id
+        WHERE user_answers.user_id = ?
+          AND user_answers.answered_at IS NOT NULL
+          {level_filter}
+        ORDER BY answer_day DESC
+    """, [user_id] + level_params)
+
+    studied_days = {row["answer_day"] for row in cur.fetchall()}
+
+    current_streak = 0
+    check_day = today
+
+    while check_day.isoformat() in studied_days:
+        current_streak += 1
+        check_day -= timedelta(days=1)
+
+    return {
+        "today_label": today.strftime("%Y-%m-%d"),
+        "daily_goal": daily_goal,
+        "today": today_data,
+        "daily_progress_percent": daily_progress_percent,
+        "current_streak": current_streak,
+        "last_7_days": last_7_days
+    }
+
+
 @app.route("/")
 def index():
     if "user_id" in session:
@@ -2571,12 +2684,26 @@ def dashboard():
     selected_level = request.args.get("jlpt_level", "all")
 
     if selected_level == "all":
-        selected_level = None
+        selected_level_for_query = None
+    else:
+        selected_level_for_query = selected_level
 
     dashboard_data = get_dashboard_details(
         session["user_id"],
-        selected_level
+        selected_level_for_query
     )
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    dashboard_data["daily_tracker"] = get_daily_tracker(
+        cur,
+        session["user_id"],
+        selected_level_for_query
+    )
+
+    conn.close()
 
     return render_template(
         "dashboard.html",
@@ -2999,11 +3126,20 @@ def grammar_question_count_graph():
     level_filter = request.args.get("level", "all")
     sort_order = request.args.get("sort", "desc")
 
+    min_accuracy = request.args.get("min_accuracy", 0, type=int)
+    max_accuracy = request.args.get("max_accuracy", 100, type=int)
+
     if level_filter not in ["all", "N1", "N2"]:
         level_filter = "all"
 
     if sort_order not in ["asc", "desc"]:
         sort_order = "desc"
+
+    min_accuracy = max(0, min(100, min_accuracy))
+    max_accuracy = max(0, min(100, max_accuracy))
+
+    if min_accuracy > max_accuracy:
+        min_accuracy, max_accuracy = max_accuracy, min_accuracy
 
     sql_sort = "ASC" if sort_order == "asc" else "DESC"
 
@@ -3067,15 +3203,11 @@ def grammar_question_count_graph():
 
     grammar_stats = []
 
-    max_count = 0
-    total_asked = 0
-
     for row in rows:
         item = dict(row)
 
         asked_count = item["asked_count"]
         correct_count = item["correct_count"]
-        wrong_count = item["wrong_count"]
 
         if asked_count > 0:
             accuracy = round((correct_count / asked_count) * 100, 1)
@@ -3083,16 +3215,23 @@ def grammar_question_count_graph():
             accuracy = 0
 
         item["accuracy"] = accuracy
+
         item["note_count"] = get_note_count_for_grammar(
             session["user_id"],
             item["grammar_id"]
         )
 
-        if asked_count > max_count:
-            max_count = asked_count
+        if min_accuracy <= accuracy <= max_accuracy:
+            grammar_stats.append(item)
 
-        total_asked += asked_count
-        grammar_stats.append(item)
+    max_count = max(
+        [grammar["asked_count"] for grammar in grammar_stats],
+        default=0
+    )
+
+    total_asked = sum(
+        grammar["asked_count"] for grammar in grammar_stats
+    )
 
     return render_template(
         "grammar_question_count_graph.html",
@@ -3100,6 +3239,8 @@ def grammar_question_count_graph():
         grammar_stats=grammar_stats,
         level_filter=level_filter,
         sort_order=sort_order,
+        min_accuracy=min_accuracy,
+        max_accuracy=max_accuracy,
         max_count=max_count,
         total_grammar=len(grammar_stats),
         total_asked=total_asked

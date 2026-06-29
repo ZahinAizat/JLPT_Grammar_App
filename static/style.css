@@ -1642,3 +1642,106 @@ mastery graph
         text-align: left;
     }
 }
+
+/*=======================
+daily track
+=========================*/
+.tracker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+    margin-bottom: 20px;
+}
+
+.tracker-box {
+    background: #f8fafc;
+    border: 1px solid #dbe3ef;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+
+.tracker-number {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.tracker-label {
+    font-size: 14px;
+    color: #555;
+}
+
+.tracker-date {
+    font-size: 14px;
+    color: #666;
+    font-weight: bold;
+}
+
+.daily-goal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 15px 0 8px;
+}
+
+.daily-progress-outer {
+    width: 100%;
+    height: 14px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.daily-progress-inner {
+    height: 100%;
+    background: #2563eb;
+    border-radius: 999px;
+}
+
+/*=======================
+stats slider
+=========================*/
+.accuracy-filter-box {
+    margin-top: 20px;
+}
+
+.accuracy-range-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.double-range-slider {
+    position: relative;
+    height: 40px;
+}
+
+.double-range-slider input[type="range"] {
+    position: absolute;
+    width: 100%;
+    pointer-events: none;
+    appearance: none;
+    background: transparent;
+}
+
+.double-range-slider input[type="range"]::-webkit-slider-thumb {
+    pointer-events: auto;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #333;
+    cursor: pointer;
+}
+
+.double-range-slider input[type="range"]::-moz-range-thumb {
+    pointer-events: auto;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #333;
+    cursor: pointer;
+}
