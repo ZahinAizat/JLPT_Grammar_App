@@ -5,6 +5,8 @@ import html
 #import markdown
 import bleach
 import re
+from dotenv import load_dotenv
+load_dotenv()
 from markupsafe import Markup, escape
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
@@ -131,7 +133,7 @@ def markdown_note_filter(text):
 
     return Markup("".join(html_parts))
 
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
+app.secret_key = os.environ["SECRET_KEY"]
 
 COOLDOWN_SIZE = 2
 
@@ -4061,5 +4063,5 @@ ensure_notes_tables()
 
 
 if __name__ == "__main__":
-    debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
+    debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(debug=debug_mode)
