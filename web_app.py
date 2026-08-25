@@ -17,10 +17,17 @@ from database import (
     get_user_dashboard,
     get_weighted_question_excluding
 )
-
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
 
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://"
+)
 
 @app.template_filter("safe_note_html")
 def safe_note_html(text):
@@ -2658,6 +2665,7 @@ def register():
 
 
 @app.route("/login", methods=["POST"])
+@limiter.limit("5 per minute")
 def login():
     if "user_id" in session:
         return redirect(url_for("dashboard"))
