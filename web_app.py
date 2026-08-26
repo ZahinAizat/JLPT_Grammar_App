@@ -1467,6 +1467,28 @@ def delete_account_with_password(user_id, password):
         (user_id,)
     )
 
+    # Delete note links belonging to this user's notes
+    cur.execute(
+        """
+        DELETE FROM grammar_note_links
+        WHERE note_id IN (
+            SELECT id
+            FROM grammar_notes
+            WHERE user_id = ?
+        )
+        """,
+        (user_id,)
+    )
+
+    # Delete the user's notes
+    cur.execute(
+        """
+        DELETE FROM grammar_notes
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+
     # Finally delete the user account
     cur.execute(
         """
