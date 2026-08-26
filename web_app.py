@@ -161,6 +161,17 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["WTF_CSRF_ENABLED"] = True
 csrf.init_app(app)
 
+@app.after_request
+def add_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+    if is_production:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000"
+
+    return response
+
 COOLDOWN_SIZE = 2
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
