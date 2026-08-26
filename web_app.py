@@ -4,6 +4,7 @@ import sqlite3
 import html
 #import markdown
 import bleach
+from bleach.css_sanitizer import CSSSanitizer
 import re
 from dotenv import load_dotenv
 load_dotenv()
@@ -70,10 +71,15 @@ def safe_note_html(text):
         "text-decoration"
     ]
 
+    css_sanitizer = CSSSanitizer(
+        allowed_css_properties=allowed_styles
+)
+
     clean_html = bleach.clean(
         text,
         tags=allowed_tags,
         attributes=allowed_attributes,
+        css_sanitizer=css_sanitizer,
         strip=True
     )
 

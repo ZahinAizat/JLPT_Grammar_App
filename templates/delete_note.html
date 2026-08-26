@@ -16,7 +16,7 @@
 
     <div class="mastery-grammar-card">
         <h4>{{ note.title }}</h4>
-        <div class="note-content">{{ note.content|safe }}</div>
+        <div class="note-content">{{ note.content|safe_note_html|safe }}</div>
 
         <div class="mastery-grammar-divider"></div>
 
