@@ -152,6 +152,12 @@ def markdown_note_filter(text):
 
 app.secret_key = os.environ["SECRET_KEY"]
 
+is_production = os.environ.get("APP_ENV", "development") == "production"
+
+app.config["SESSION_COOKIE_SECURE"] = is_production
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
 app.config["WTF_CSRF_ENABLED"] = True
 csrf.init_app(app)
 
