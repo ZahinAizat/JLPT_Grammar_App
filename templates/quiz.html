@@ -51,6 +51,10 @@
 </div>
 
 <form action="{{ url_for('quiz_answer') }}" method="POST" class="choice-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="question_id" value="{{ question.question_id }}">
+    <input type="hidden" name="grammar_id" value="{{ question.grammar_id }}">
+
 
     {% for choice in question.choices %}
         <label class="choice-box">

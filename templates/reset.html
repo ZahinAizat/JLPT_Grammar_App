@@ -19,6 +19,9 @@
     </p>-->
 
     <form action="{{ url_for('reset_confirm') }}" method="POST" class="setup-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="grammar_id" value="{{ grammar.grammar_id }}">
+        <input type="hidden" name="note_id" value="{{ note.note_id }}">
 
         <label for="reset_scope"><strong>Reset scope</strong></label>
 

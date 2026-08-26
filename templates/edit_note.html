@@ -31,6 +31,8 @@
         {% endif %}
 
         <form method="POST" id="note-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="note_id" value="{{ note.note_id }}">
             <input type="hidden" name="action" value="save_note">
 
             <div class="form-group">
@@ -105,8 +107,9 @@
                                     </span>
 
                                     <form method="POST" action="{{ url_for('edit_note', note_id=note.note_id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="note_id" value="{{ note.note_id }}">
                                         <input type="hidden" name="action" value="remove_connection">
-                                        <input type="hidden" name="grammar_id" value="{{ grammar.grammar_id }}">
                                         <input type="hidden" name="keyword" value="{{ keyword or '' }}">
 
                                         <button type="submit" class="danger-small-button">
@@ -184,7 +187,9 @@
                                         action="{{ url_for('edit_note', note_id=note.note_id) }}"
                                         class="connect-grammar-form"
                                     >
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="action" value="add_connection">
+                                        <input type="hidden" name="note_id" value="{{ note.note_id }}">
                                         <input type="hidden" name="grammar_id" value="{{ result_grammar_id }}">
                                         <input type="hidden" name="grammar_label" value="{{ grammar.grammar }}">
                                         <input type="hidden" name="keyword" value="{{ keyword or '' }}">
@@ -392,6 +397,7 @@
                                 </span>
 
                                 <form method="POST" action="${window.location.pathname}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="action" value="remove_connection">
                                     <input type="hidden" name="grammar_id" value="${data.grammar_id}">
                                     <input type="hidden" name="keyword" value="">

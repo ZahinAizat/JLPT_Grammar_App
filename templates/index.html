@@ -5,6 +5,7 @@
 <h2>Select User</h2>
 
 <form action="{{ url_for('select_user') }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Username:</label>
     <input type="text" name="username" placeholder="Enter username">
     <button type="submit">Start</button>
@@ -16,6 +17,7 @@
     <div class="user-list">
         {% for user in users %}
             <form action="{{ url_for('select_user') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="username" value="{{ user['username'] }}">
                 <button type="submit">{{ user["username"] }}</button>
             </form>

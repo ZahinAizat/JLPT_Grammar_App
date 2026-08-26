@@ -114,6 +114,8 @@
             class="setup-form"
             id="note-form"
         >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="grammar_id" value="{{ grammar.grammar_id }}">
             <input type="hidden" name="action" value="save_note">
 
             <label for="title"><strong>Note title</strong></label>
@@ -191,6 +193,7 @@
                                         method="POST"
                                         action="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}#connect-section"
                                     >
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="action" value="remove_connection">
                                         <input type="hidden" name="grammar_id" value="{{ item.grammar_id }}">
                                         <input type="hidden" name="keyword" value="{{ keyword or '' }}">
@@ -215,6 +218,8 @@
                 action="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}#connect-section"
                 style="margin-top: 12px;"
             >
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="grammar_id" value="{{ grammar.grammar_id }}">
                 <input type="hidden" name="action" value="clear_connections">
                 <input type="hidden" name="keyword" value="{{ keyword or '' }}">
 
@@ -281,6 +286,8 @@
                                     action="{{ url_for('grammar_notes', grammar_id=grammar.grammar_id) }}"
                                     class="connect-grammar-form"
                                 >
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="grammar_id" value="{{ grammar.grammar_id }}">
                                     <input type="hidden" name="action" value="add_connection">
                                     <input type="hidden" name="grammar_id" value="{{ result_grammar_id }}">
                                     <input type="hidden" name="grammar_label" value="{{ result.grammar }}">
@@ -532,8 +539,10 @@
                                 </span>
 
                                 <form method="POST" action="${window.location.pathname}#connect-section">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="action" value="remove_connection">
                                     <input type="hidden" name="grammar_id" value="${data.grammar_id}">
+                                    <input type="hidden" name="note_id" value="${data.note_id}">
                                     <input type="hidden" name="keyword" value="">
 
                                     <button type="submit" class="danger-small-button">

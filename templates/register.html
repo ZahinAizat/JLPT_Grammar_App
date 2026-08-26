@@ -23,6 +23,7 @@
         </div>
     {% else %}
         <form action="{{ url_for('register') }}" method="POST" class="setup-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <label for="username"><strong>Username</strong></label>
             <input type="text" name="username" id="username" required>

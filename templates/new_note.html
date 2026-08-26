@@ -23,6 +23,7 @@
     <h3>Note Content</h3>
 
     <form method="POST" id="note-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="save_note">
 
         <p>
@@ -90,6 +91,7 @@
                             </span>
 
                             <form method="POST" action="{{ url_for('new_note') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="action" value="remove_connection">
                                 <input type="hidden" name="grammar_id" value="{{ grammar.grammar_id }}">
                                 <input type="hidden" name="keyword" value="{{ keyword or '' }}">
@@ -165,6 +167,7 @@
                                 action="{{ url_for('new_note') }}"
                                 class="connect-grammar-form"
                             >
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="action" value="add_connection">
                                 <input type="hidden" name="grammar_id" value="{{ result_grammar_id }}">
                                 <input type="hidden" name="grammar_label" value="{{ grammar.grammar }}">
@@ -370,6 +373,8 @@
                                 </span>
 
                                 <form method="POST" action="${window.location.pathname}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="grammar_id" value="{{ grammar.grammar_id }}">
                                     <input type="hidden" name="action" value="remove_connection">
                                     <input type="hidden" name="grammar_id" value="${data.grammar_id}">
                                     <input type="hidden" name="keyword" value="">

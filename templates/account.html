@@ -29,6 +29,7 @@
     {% endif %}
 
     <form action="{{ url_for('delete_account') }}" method="POST" class="setup-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <label for="password"><strong>Enter your password</strong></label>
         <input type="password" name="password" id="password" required>
