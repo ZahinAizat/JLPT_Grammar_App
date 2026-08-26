@@ -16,5 +16,38 @@
         {% endblock %}
     </main>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const noteButtons = document.querySelectorAll(".note-button");
+
+    if (noteButtons.length === 0) {
+        return;
+    }
+
+    // Add a tooltip to every Notes button
+    noteButtons.forEach(function (button) {
+        if (!button.hasAttribute("title")) {
+            button.setAttribute(
+                "title",
+                "Click to see notes for this grammar point"
+            );
+        }
+    });
+
+    // Only show one visible hint per page
+    if (!document.querySelector(".notes-help-text")) {
+        const firstButton = noteButtons[0];
+
+        const hint = document.createElement("div");
+        hint.className = "notes-help-text";
+        hint.innerHTML =
+            'Click the purple <strong>Notes</strong> button to see notes for this grammar point.';
+
+        // Put the hint below the row containing the first Notes button
+        firstButton.parentElement.insertAdjacentElement("afterend", hint);
+    }
+});
+</script>
+
 </body>
 </html>

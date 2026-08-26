@@ -319,10 +319,9 @@ button {
 }
 
 .notes-help-text {
-    flex-basis: 100%;
-    width: 100%;
-    margin-top: 3px;
-    font-size: 11px;
+    margin-top: 6px;
+    margin-bottom: 8px;
+    font-size: 12px;
     color: #6b7280;
     line-height: 1.4;
 }
