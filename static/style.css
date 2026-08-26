@@ -254,17 +254,22 @@ button {
     line-height: 1.5;
 }
 
-.feature-card a {
+.feature-card a,
+.feature-card button {
     display: inline-block;
     background: #1976d2;
     color: white;
     padding: 9px 14px;
     border-radius: 8px;
+    border: none;
     text-decoration: none;
     margin-top: 8px;
+    font: inherit;
+    cursor: pointer;
 }
 
-.feature-card a:hover {
+.feature-card a:hover,
+.feature-card button:hover {
     background: #0d47a1;
 }
 
@@ -273,11 +278,13 @@ button {
     background: #fff5f5;
 }
 
-.danger-feature a {
+.danger-feature a,
+.danger-feature button {
     background: #c62828;
 }
 
-.danger-feature a:hover {
+.danger-feature a:hover,
+.danger-feature button:hover {
     background: #8e0000;
 }
 

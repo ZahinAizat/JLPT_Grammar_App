@@ -349,9 +349,12 @@
         <div class="feature-card danger-feature">
             <h4>Logout</h4>
             <p>
-                Return to the user selection page.
+                Return to the login page.
             </p>
-            <a href="{{ url_for('logout') }}">Logout</a>
+            <form action="{{ url_for('logout') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit">Logout</button>
+            </form>
         </div>
 
     </div>
