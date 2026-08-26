@@ -14,7 +14,6 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import (
     get_all_users,
-    get_or_create_user,
     get_user_dashboard,
     get_weighted_question_excluding
 )
@@ -2646,23 +2645,6 @@ def index():
         return redirect(url_for("dashboard"))
 
     return render_template("login.html")
-
-
-@app.route("/select_user", methods=["POST"])
-def select_user():
-    username = request.form.get("username", "").strip()
-
-    if username == "":
-        return redirect(url_for("index"))
-
-    user = get_or_create_user(username)
-
-    session["user_id"] = user["id"]
-    session["username"] = user["username"]
-    session["recent_question_ids"] = []
-
-    return redirect(url_for("dashboard"))
-
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
