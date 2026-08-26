@@ -72,11 +72,20 @@
 
 			<span class="note-count-tag">Notes: {{ question.note_count }}</span>
 
-			<a class="note-button" href="{{ url_for('grammar_notes', grammar_id=question.grammar_id) }}">
-				Notes
-			</a>
-		</div>
-    </div>
+            <a class="note-button"
+                href="{{ url_for('grammar_notes', grammar_id=question.grammar_id) }}"
+                title="Click to see notes for this grammar point">
+                Notes
+            </a>
+
+            <div class="notes-help-text">
+                <span class="notes-help-dot"></span>
+                Click the purple <strong>Notes</strong> button to see notes for this grammar point.
+            </div>
+
+        </div>
+        </div>
+</div>
 
     <div class="mastery-grammar-section">
         <h5>Question Information</h5>
@@ -196,10 +205,13 @@
 
                 <div class="mastery-badge-group">
 					{% if choice.grammar_id == question.grammar_id %}
-						<span class="status-pill correct-pill">Correct choice</span>
-					{% elif selected_choice and choice.grammar_id == selected_choice.grammar_id %}
-						<span class="status-pill wrong-pill">Your choice</span>
-					{% else %}
+						<span class="note-count-tag">Notes: {{ choice.note_count }}</span>
+
+                        <a class="note-button"
+                            href="{{ url_for('grammar_notes', grammar_id=choice.grammar_id) }}"
+                            title="View notes for this grammar point">
+                            Notes
+                        </a>
 						<span class="jlpt-tag">Other choice</span>
 					{% endif %}
 					

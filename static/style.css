@@ -318,6 +318,15 @@ button {
     background: #4a148c;
 }
 
+.notes-help-text {
+    flex-basis: 100%;
+    width: 100%;
+    margin-top: 3px;
+    font-size: 11px;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
 .small-button {
     background: #1976d2;
     color: white;
