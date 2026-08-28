@@ -3007,7 +3007,11 @@ def question_history():
     if "user_id" not in session:
         return redirect(url_for("index"))
 
-    page = 1
+    page = request.args.get("page", 1, type=int)
+    per_page = 25
+
+    if page < 1:
+        page = 1
 
     status_filter = request.args.get("status", "all")
     jlpt_level = request.args.get("jlpt_level", "all")
@@ -3021,7 +3025,7 @@ def question_history():
     history_data = get_question_history(
         user_id=session["user_id"],
         page=page,
-        per_page=1000,
+        per_page=per_page,
         status_filter=status_filter,
         jlpt_level=jlpt_level,
         difficulty=difficulty,
@@ -3039,6 +3043,7 @@ def question_history():
         total_count=history_data["total_count"],
         page=history_data["page"],
         total_pages=history_data["total_pages"],
+        per_page=history_data["per_page"],
         status_filter=status_filter,
         selected_level=jlpt_level,
         selected_difficulty=difficulty,
