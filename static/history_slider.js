@@ -1,5 +1,44 @@
 let currentSlideIndex = 0;
 
+const HISTORY_SCROLL_POSITION_KEY = "historyScrollPosition";
+
+
+function saveHistoryScrollPosition() {
+    sessionStorage.setItem(
+        HISTORY_SCROLL_POSITION_KEY,
+        String(window.scrollY)
+    );
+}
+
+
+function restoreHistoryScrollPosition() {
+    const savedPosition = sessionStorage.getItem(
+        HISTORY_SCROLL_POSITION_KEY
+    );
+
+    if (savedPosition === null) {
+        return;
+    }
+
+    sessionStorage.removeItem(HISTORY_SCROLL_POSITION_KEY);
+
+    const scrollPosition = Number(savedPosition);
+
+    if (!Number.isFinite(scrollPosition)) {
+        return;
+    }
+
+    /*
+     * Wait until the History slider has finished setting up
+     * before restoring the previous vertical position.
+     */
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            window.scrollTo(0, scrollPosition);
+        });
+    });
+}
+
 function getHistorySliderData() {
     const slider = document.getElementById("history-slider");
 
@@ -66,6 +105,8 @@ function showSlide(index) {
 
 
 function navigateToHistoryBatch(page, slide) {
+    saveHistoryScrollPosition();
+
     const url = new URL(window.location.href);
 
     /*
@@ -215,3 +256,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     showSlide(0);
 });
+
+
+window.addEventListener("pageshow", function() {
+    restoreHistoryScrollPosition();
+});
+
