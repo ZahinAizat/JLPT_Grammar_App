@@ -970,12 +970,23 @@ def get_question_history(
         "grammar": "correct_gp.grammar"
     }
 
-    order_column = sort_options.get(sort_by, "web_answer_history.answered_at")
+    if sort_by not in sort_options:
+        sort_by = "answered_at"
+
+    order_column = sort_options[sort_by]
 
     if sort_order not in ["asc", "desc"]:
         sort_order = "desc"
 
     order_direction = sort_order.upper()
+
+    if sort_by == "answered_at":
+        order_sql = f"web_answer_history.answered_at {order_direction}"
+    else:
+        order_sql = (
+            f"{order_column} {order_direction}, "
+            "web_answer_history.answered_at DESC"
+        )
 
     offset = (page - 1) * per_page
 
@@ -1064,7 +1075,7 @@ def get_question_history(
 
     {where_sql}
 
-    ORDER BY {order_column} {order_direction}, web_answer_history.answered_at DESC
+    ORDER BY {order_sql}
 
     LIMIT ?
     OFFSET ?
