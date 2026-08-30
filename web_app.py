@@ -970,12 +970,23 @@ def get_question_history(
         "grammar": "correct_gp.grammar"
     }
 
-    order_column = sort_options.get(sort_by, "web_answer_history.answered_at")
+    if sort_by not in sort_options:
+        sort_by = "answered_at"
+
+    order_column = sort_options[sort_by]
 
     if sort_order not in ["asc", "desc"]:
         sort_order = "desc"
 
     order_direction = sort_order.upper()
+
+    if sort_by == "answered_at":
+        order_sql = f"web_answer_history.answered_at {order_direction}"
+    else:
+        order_sql = (
+            f"{order_column} {order_direction}, "
+            "web_answer_history.answered_at DESC"
+        )
 
     offset = (page - 1) * per_page
 
@@ -1064,7 +1075,7 @@ def get_question_history(
 
     {where_sql}
 
-    ORDER BY {order_column} {order_direction}, web_answer_history.answered_at DESC
+    ORDER BY {order_sql}
 
     LIMIT ?
     OFFSET ?
@@ -1074,25 +1085,36 @@ def get_question_history(
 
     cur.execute(sql, params)
     rows = cur.fetchall()
-    history_rows = []
 
-    for row in rows:
-        item = dict(row)
+    history_rows = [
+        dict(row)
+        for row in rows
+    ]
 
-        item["correct_note_count"] = get_note_count_for_grammar(
-            user_id,
-            item["correct_grammar_id"]
+    grammar_ids = set()
+
+    for item in history_rows:
+        if item.get("correct_grammar_id") is not None:
+            grammar_ids.add(item["correct_grammar_id"])
+
+        if item.get("selected_grammar_id") is not None:
+            grammar_ids.add(item["selected_grammar_id"])
+
+    note_counts = get_note_counts_for_grammars(
+        user_id,
+        grammar_ids
+    )
+
+    for item in history_rows:
+        item["correct_note_count"] = note_counts.get(
+            item["correct_grammar_id"],
+            0
         )
 
-        if item.get("selected_grammar_id"):
-            item["selected_note_count"] = get_note_count_for_grammar(
-                user_id,
-                item["selected_grammar_id"]
-            )
-        else:
-            item["selected_note_count"] = 0
-
-        history_rows.append(item)
+        item["selected_note_count"] = note_counts.get(
+            item.get("selected_grammar_id"),
+            0
+        )
 
     conn.close()
 
@@ -2418,6 +2440,49 @@ def get_note_count_for_grammar(user_id, grammar_id):
     return row["note_count"]
 
 
+def get_note_counts_for_grammars(user_id, grammar_ids):
+    grammar_ids = {
+        grammar_id
+        for grammar_id in grammar_ids
+        if grammar_id is not None
+    }
+
+    if not grammar_ids:
+        return {}
+
+    ensure_notes_tables()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    placeholders = ",".join("?" for _ in grammar_ids)
+
+    sql = f"""
+    SELECT
+        grammar_note_links.grammar_id,
+        COUNT(DISTINCT grammar_notes.id) AS note_count
+    FROM grammar_note_links
+    JOIN grammar_notes
+        ON grammar_notes.id = grammar_note_links.note_id
+    WHERE grammar_notes.user_id = ?
+      AND grammar_note_links.grammar_id IN ({placeholders})
+    GROUP BY grammar_note_links.grammar_id
+    """
+
+    params = [user_id] + list(grammar_ids)
+
+    cur.execute(sql, params)
+    rows = cur.fetchall()
+
+    conn.close()
+
+    return {
+        row["grammar_id"]: row["note_count"]
+        for row in rows
+    }
+
+
 def render_note_markdown(text):
     if text is None:
         return ""
@@ -3007,7 +3072,11 @@ def question_history():
     if "user_id" not in session:
         return redirect(url_for("index"))
 
-    page = 1
+    page = request.args.get("page", 1, type=int)
+    per_page = 25
+
+    if page < 1:
+        page = 1
 
     status_filter = request.args.get("status", "all")
     jlpt_level = request.args.get("jlpt_level", "all")
@@ -3021,7 +3090,7 @@ def question_history():
     history_data = get_question_history(
         user_id=session["user_id"],
         page=page,
-        per_page=1000,
+        per_page=per_page,
         status_filter=status_filter,
         jlpt_level=jlpt_level,
         difficulty=difficulty,
@@ -3039,6 +3108,7 @@ def question_history():
         total_count=history_data["total_count"],
         page=history_data["page"],
         total_pages=history_data["total_pages"],
+        per_page=history_data["per_page"],
         status_filter=status_filter,
         selected_level=jlpt_level,
         selected_difficulty=difficulty,

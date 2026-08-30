@@ -74,7 +74,14 @@
     </form>
 </div>
 
-<div class="card">
+<div
+    class="card"
+    id="history-slider"
+    data-page="{{ page }}"
+    data-total-pages="{{ total_pages }}"
+    data-per-page="{{ per_page }}"
+    data-total-count="{{ total_count }}"
+>
     <h3>Recent Answers</h3>
 
     <p><strong>Total matching answers:</strong> {{ total_count }}</p>
@@ -96,7 +103,7 @@
                         class="card-preview-item"
                         onclick="jumpToSlide({{ loop.index0 }}, event)"
                     >
-                        {{ loop.index }}.
+                        {{ ((page - 1) * per_page) + loop.index }}.
                         {% if item.is_correct == 1 %}
                             Correct
                         {% else %}
@@ -115,7 +122,7 @@
                 <div class="mastery-grammar-header">
                     <div>
                         <h4 class="mastery-grammar-title">
-                            {{ loop.index }}. {{ item.correct_grammar }}
+                            {{ ((page - 1) * per_page) + loop.index }}. {{ item.correct_grammar }}
                         </h4>
 
                         {% if item.correct_reading %}
@@ -231,7 +238,7 @@
             <button type="button" onclick="previousSlide(event)">Previous</button>
 
             <span id="slide-counter">
-                1 / {{ history|length }}
+                {{ ((page - 1) * per_page) + 1 }} / {{ total_count }}
             </span>
 
             <button type="button" onclick="nextSlide(event)">Next</button>
@@ -247,6 +254,6 @@
     <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
 </div>
 
-<script src="{{ url_for('static', filename='slide_cards.js') }}"></script>
+<script src="{{ url_for('static', filename='history_slider.js') }}"></script>
 
 {% endblock %}
